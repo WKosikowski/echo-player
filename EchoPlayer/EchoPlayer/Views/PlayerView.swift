@@ -9,7 +9,7 @@ import SwiftUI
 
 struct AudioKitPlayerView: View {
     @State var vm = PlayerViewModel()
-    @State var someval = 0.0
+    @State var someval = 1.0
     var body: some View {
         VStack {
             ZStack {
@@ -60,16 +60,16 @@ struct AudioKitPlayerView: View {
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     ForEach(0..<12, id: \.self) { idx in
-                        HStack {
+                        VStack {
                             Slider(value: Binding(
                                 get: { vm.gains[idx] },
                                 set: { vm.updateGain(band: idx, value: $0) }),
                                    in: -24...24, step: 1)
-                            .frame(width: 120)
-                            //                                .rotationEffect(.degrees(-90))
+                            .frame(width: 120, alignment: .bottom)
                             Text(label(for: idx))
                                 .font(.caption)
                         }
+                        .padding(.vertical)
                     }
                 }
                 .padding(.horizontal)
@@ -79,6 +79,7 @@ struct AudioKitPlayerView: View {
                 .foregroundColor(.secondary)
             
             Spacer()
+            
         }
         .frame(minWidth: 500, minHeight: 420)
     }
@@ -90,7 +91,7 @@ struct AudioKitPlayerView: View {
     }
     
     private func label(for i: Int) -> String {
-        ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "12k", "14k", "16k"][i]
+        ["32", "64", "128", "250", "500", "1k", "2k", "4k", "8k", "12k", "14k", "16k"][i]
     }
 }
 
