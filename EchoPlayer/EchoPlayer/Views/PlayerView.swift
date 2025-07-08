@@ -9,7 +9,6 @@ import SwiftUI
 
 struct AudioKitPlayerView: View {
     @State var vm = PlayerViewModel()
-    @State var someval = 1.0
     var body: some View {
         VStack {
             ZStack {
@@ -28,7 +27,7 @@ struct AudioKitPlayerView: View {
                     }
                 }
 
-                Slider(value: $someval, in: 0 ... 1)
+                Slider(value: $vm.volume, in: 0 ... 1)
                     .accentColor(.blue)
                     .padding()
                     .frame(width: 200, height: 50)
@@ -77,6 +76,28 @@ struct AudioKitPlayerView: View {
             Text("Gain ±24 dB per band")
                 .font(.footnote)
                 .foregroundColor(.secondary)
+            
+            VStack {
+                Slider(value: $vm.globalGain, in: -24...24, step: 1)
+                .frame(width: 120, alignment: .bottom)
+                Text("Global Gain")
+                    .font(.caption)
+            }
+            .padding(.vertical)
+            
+            if vm.visualiserMode == .spectrum {
+                VisualiserView(vm: vm)
+//                    .frame(height: 150)
+                    .padding(.horizontal)
+            } else if vm.visualiserMode == .sine {
+//                SineVisualiserView()
+//                    .frame(height: 150)
+//                    .padding(.horizontal)
+            } else if vm.visualiserMode == .metalSum {
+//                MetalSumVisualiserView()
+//                    .frame(height: 150)
+//                    .padding(.horizontal)
+            }
             
             Spacer()
             

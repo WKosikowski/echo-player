@@ -12,12 +12,25 @@ import UniformTypeIdentifiers
 
 @MainActor
 final class PlayerViewModel: ObservableObject {
+    enum VisualiserMode {
+        case spectrum, sine, metalSum
+    }
+    
     // Published UI state
+    @Published var log: Bool = false
     @Published var isPlaying = false
     @Published var gains: [Float]  = Array(repeating: 0, count: 12)
+    @Published var spectrum: [Float] = Array(repeating: 0, count: 64) // 0‥1
+    @Published var spectrumPhase: [Float] = Array(repeating: 0, count: 64)
+    @Published var visualiserMode: VisualiserMode = .spectrum
     @Published var volume: Float = 1.0 {
         didSet {
             player.volume = volume
+        }
+    }
+    @Published var globalGain: Float = 1.0 {
+        didSet {
+            eq.globalGain = globalGain
         }
     }
 
@@ -31,14 +44,22 @@ final class PlayerViewModel: ObservableObject {
     // Audio graph
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
-    private let eq      = AVAudioUnitEQ(numberOfBands: 12)
+    private let eq     = AVAudioUnitEQ(numberOfBands: 12)
     private var audioFile: AVAudioFile?
 
     private var timer: Timer?
+    
+    // FFT helpers (single‑precision, 512 points)
+    private let fftSize  = 512
+    private let fftSetup = vDSP.FFT(log2n: 9, radix: .radix2, ofType: DSPSplitComplex.self)! // 2⁹ = 512
+    private var window   = [Float](repeating: 0, count: 512)
+    private var fftReal  = [Float](repeating: 0, count: 512)
+    private var fftImag  = [Float](repeating: 0, count: 512)
 
     init() {
         configureEQ()
         setupEngine()
+        window = vDSP.window(ofType: Float.self, usingSequence: .hanningDenormalized, count: fftSize, isHalfWindow: false)
         setupTimer()
     }
 
@@ -76,8 +97,8 @@ final class PlayerViewModel: ObservableObject {
         engine.attach(eq)
         engine.connect(player, to: eq, format: nil)
         engine.connect(eq, to: engine.mainMixerNode, format: nil)
-        
         try? engine.start()
+        installTap()
     }
 
     func seek(to progress: Double) {
@@ -100,6 +121,18 @@ final class PlayerViewModel: ObservableObject {
             }
         }
     }
+    
+    // Tap post‑EQ for visualiser
+    private func installTap() {
+        let mixer = engine.mainMixerNode
+        mixer.removeTap(onBus: 0)
+        mixer.installTap(onBus: 0,
+                         bufferSize: AVAudioFrameCount(1024),
+                         format: mixer.outputFormat(forBus: 0)) { [weak self] buffer, _ in
+            self?.process(buffer: buffer)
+        }
+    }
+    
     
     private func configureEQ() {
         let freqs: [Float] = [32, 64, 128, 250, 500, 1_000, 2_000, 4_000, 8_000, 12_000, 14_000, 16_000]
@@ -132,6 +165,61 @@ final class PlayerViewModel: ObservableObject {
                     play()
                 }
             } catch { print("Error loading file: \(error)") }
+        }
+    }
+    
+    private func process(buffer: AVAudioPCMBuffer) {
+        guard let src = buffer.floatChannelData?.pointee,
+              buffer.frameLength >= fftSize else { return }
+        
+        // Copy first 512 samples & apply Hann window
+        fftReal.withUnsafeMutableBufferPointer { dst in
+            dst.baseAddress?.update(from: src, count: fftSize)
+        }
+        vDSP.multiply(fftReal, window, result: &fftReal)
+        fftImag = Array(repeating: 0, count: fftSize) // zero imag
+        
+        // Forward FFT (in‑place)
+        fftReal.withUnsafeMutableBufferPointer { realBuf in
+            fftImag.withUnsafeMutableBufferPointer { imagBuf in
+                var split = DSPSplitComplex(realp: realBuf.baseAddress!, imagp: imagBuf.baseAddress!)
+                fftSetup.forward(input: split, output: &split)
+                
+                // Magnitude spectrum
+                var mags = [Float](repeating: 0, count: fftSize / 2)
+                vDSP.absolute(split, result: &mags) // |⟂|
+                
+                // Phase spectrum
+                var phases = [Float](repeating: 0, count: fftSize / 2)
+                for bin in 0..<(fftSize / 2) {
+                    phases[bin] = atan2f(split.imagp[bin], split.realp[bin])
+                }
+                
+                // Mean‑downsample to 64 bins
+                let bins = 64, step = mags.count / bins
+                var reduced = [Float](repeating: 0, count: bins)
+                for i in 0..<bins {
+                    let slice = mags[(i * step)..<((i + 1) * step)]
+                    let mag = vDSP.mean(slice)
+                    // Convert magnitudes to dB and normalize for logarithmic visualizer
+                    reduced[i] = 20 * log10(max(mag, 1e-7))
+                }
+                
+                // Also downsample phases similarly
+                var reducedPhase = [Float](repeating: 0, count: bins)
+                for i in 0..<bins {
+                    let slice = phases[(i * step)..<((i + 1) * step)]
+                    reducedPhase[i] = vDSP.mean(slice)
+                }
+                
+                // Normalize dB values: 0 dB is max, -60 dB or less is silence (0)
+                reduced = reduced.map { max(($0 + 60) / 60, 0) }
+                
+                DispatchQueue.main.async { [weak self] in
+                    self?.spectrum = reduced
+                    self?.spectrumPhase = reducedPhase
+                }
+            }
         }
     }
     
