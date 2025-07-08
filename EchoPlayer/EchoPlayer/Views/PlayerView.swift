@@ -18,7 +18,7 @@ struct AudioKitPlayerView: View {
                         Image(systemName: "backward.fill")
                             .font(.largeTitle)
                     }
-                    Button(action: { vm.play() }) {
+                    Button(action: { vm.togglePlay() }) {
                         Image(systemName: "pause.circle.fill")
                             .font(.system(size: 64))
                     }
@@ -56,14 +56,41 @@ struct AudioKitPlayerView: View {
             }
             .padding(.horizontal)
             .disabled(vm.duration <= 0)
+            
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(0..<12, id: \.self) { idx in
+                        HStack {
+                            Slider(value: Binding(
+                                get: { vm.gains[idx] },
+                                set: { vm.updateGain(band: idx, value: $0) }),
+                                   in: -24...24, step: 1)
+                            .frame(width: 120)
+                            //                                .rotationEffect(.degrees(-90))
+                            Text(label(for: idx))
+                                .font(.caption)
+                        }
+                    }
+                }
+                .padding(.horizontal)
+            }
+            Text("Gain ±24 dB per band")
+                .font(.footnote)
+                .foregroundColor(.secondary)
+            
             Spacer()
         }
+        .frame(minWidth: 500, minHeight: 420)
     }
 
     private func formatTime(_ time: Double) -> String {
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    private func label(for i: Int) -> String {
+        ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "12k", "14k", "16k"][i]
     }
 }
 

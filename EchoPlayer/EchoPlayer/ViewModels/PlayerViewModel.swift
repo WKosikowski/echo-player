@@ -11,11 +11,13 @@ import AudioKitEX
 import AudioToolbox
 import AVFoundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor
 final class PlayerViewModel: ObservableObject {
     // Published UI state
     @Published var isPlaying = false
+    @Published var gains: [Float]  = Array(repeating: 0, count: 12)
 
     @Published var assetFileName: String = ""
 
@@ -27,11 +29,13 @@ final class PlayerViewModel: ObservableObject {
     // Audio graph
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
+    private let eq      = AVAudioUnitEQ(numberOfBands: 12)
     private var audioFile: AVAudioFile?
 
     private var timer: Timer?
 
     init() {
+        configureEQ()
         setupEngine()
         setupTimer()
     }
@@ -67,7 +71,9 @@ final class PlayerViewModel: ObservableObject {
 
     private func setupEngine() {
         engine.attach(player)
-        engine.connect(player, to: engine.mainMixerNode, format: nil)
+        engine.attach(eq)
+        engine.connect(player, to: eq, format: nil)
+        engine.connect(eq, to: engine.mainMixerNode, format: nil)
         try? engine.start()
     }
 
@@ -79,6 +85,7 @@ final class PlayerViewModel: ObservableObject {
         let sampleRate = file.processingFormat.sampleRate
         let startSampleTime = AVAudioFramePosition(seekTime * sampleRate)
         let length = AVAudioFrameCount(file.length - startSampleTime)
+        
         do {
             if length > 0 {
                 player.scheduleSegment(file, startingFrame: startSampleTime, frameCount: length, at: nil) {
@@ -86,21 +93,32 @@ final class PlayerViewModel: ObservableObject {
                         self?.isPlaying = false
                     }
                 }
-                play()
+                togglePlay()
             }
+        }
+    }
+    
+    private func configureEQ() {
+        let freqs: [Float] = [31, 62, 125, 250, 500, 1_000, 2_000, 4_000, 8_000, 12_000, 14_000, 16_000]
+        for (i, band) in eq.bands.enumerated() {
+            band.filterType = .parametric
+            band.frequency  = freqs[i]
+            band.bandwidth  = 1.0        // octaves
+            band.gain       = 0
+            band.bypass     = false
         }
     }
 
     func openFile() {
         let panel = NSOpenPanel()
-        panel.allowedFileTypes = ["mp3", "wav", "m4a", "aiff"]
+        panel.allowedContentTypes = [.mp3, .wav, .mpeg4Audio, .aiff]
         panel.allowsMultipleSelection = false
         if panel.runModal() == .OK, let url = panel.url {
             do {
                 audioFile = try AVAudioFile(forReading: url)
 
                 assetFileName = url.lastPathComponent
-                let avAsset = AVAsset(url: url)
+                let avAsset = AVURLAsset(url: url)
 
                 player.stop()
                 if let file = audioFile {
@@ -113,9 +131,20 @@ final class PlayerViewModel: ObservableObject {
             } catch { print("Error loading file: \(error)") }
         }
     }
+    
+    func updateGain(band: Int, value: Float) {
+        gains[band]         = value
+        eq.bands[band].gain = value
+    }
 
-    func play() {
+    func togglePlay() {
         guard !isPlaying else { pause(); return }
+        if !engine.isRunning { try? engine.start() }
+        if !player.isPlaying { player.play() }
+        isPlaying = true
+    }
+    
+    func play() {
         if !engine.isRunning { try? engine.start() }
         if !player.isPlaying { player.play() }
         isPlaying = true
