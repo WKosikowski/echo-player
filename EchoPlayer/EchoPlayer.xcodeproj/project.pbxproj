@@ -6,11 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		79314C3C2E1C10D1001284FD /* AudioKitEX in Frameworks */ = {isa = PBXBuildFile; productRef = 79314C3B2E1C10D1001284FD /* AudioKitEX */; };
-		79A521E02E1C0535002C6A00 /* AudioKit in Frameworks */ = {isa = PBXBuildFile; productRef = 79A521DF2E1C0535002C6A00 /* AudioKit */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
 		79A521B72E1BE003002C6A00 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -57,8 +52,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				79A521E02E1C0535002C6A00 /* AudioKit in Frameworks */,
-				79314C3C2E1C10D1001284FD /* AudioKitEX in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,8 +112,6 @@
 			);
 			name = EchoPlayer;
 			packageProductDependencies = (
-				79A521DF2E1C0535002C6A00 /* AudioKit */,
-				79314C3B2E1C10D1001284FD /* AudioKitEX */,
 			);
 			productName = EchoPlayer;
 			productReference = 79A521A52E1BDFFF002C6A00 /* EchoPlayer.app */;
@@ -205,8 +196,6 @@
 			mainGroup = 79A5219C2E1BDFFF002C6A00;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				79A521DE2E1C0535002C6A00 /* XCRemoteSwiftPackageReference "AudioKit" */,
-				79314C3A2E1C10D1001284FD /* XCRemoteSwiftPackageReference "AudioKitEX" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 79A521A62E1BDFFF002C6A00 /* Products */;
@@ -554,38 +543,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		79314C3A2E1C10D1001284FD /* XCRemoteSwiftPackageReference "AudioKitEX" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/AudioKit/AudioKitEX";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 5.6.2;
-			};
-		};
-		79A521DE2E1C0535002C6A00 /* XCRemoteSwiftPackageReference "AudioKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/AudioKit/AudioKit";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 5.6.5;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		79314C3B2E1C10D1001284FD /* AudioKitEX */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 79314C3A2E1C10D1001284FD /* XCRemoteSwiftPackageReference "AudioKitEX" */;
-			productName = AudioKitEX;
-		};
-		79A521DF2E1C0535002C6A00 /* AudioKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 79A521DE2E1C0535002C6A00 /* XCRemoteSwiftPackageReference "AudioKit" */;
-			productName = AudioKit;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 79A5219D2E1BDFFF002C6A00 /* Project object */;
 }

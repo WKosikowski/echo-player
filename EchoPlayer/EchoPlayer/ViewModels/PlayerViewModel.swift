@@ -6,9 +6,6 @@
 //
 
 import Accelerate
-import AudioKit
-import AudioKitEX
-import AudioToolbox
 import AVFoundation
 import SwiftUI
 import UniformTypeIdentifiers
@@ -18,6 +15,11 @@ final class PlayerViewModel: ObservableObject {
     // Published UI state
     @Published var isPlaying = false
     @Published var gains: [Float]  = Array(repeating: 0, count: 12)
+    @Published var volume: Float = 1.0 {
+        didSet {
+            player.volume = volume
+        }
+    }
 
     @Published var assetFileName: String = ""
 
@@ -74,6 +76,7 @@ final class PlayerViewModel: ObservableObject {
         engine.attach(eq)
         engine.connect(player, to: eq, format: nil)
         engine.connect(eq, to: engine.mainMixerNode, format: nil)
+        
         try? engine.start()
     }
 
@@ -99,7 +102,7 @@ final class PlayerViewModel: ObservableObject {
     }
     
     private func configureEQ() {
-        let freqs: [Float] = [31, 62, 125, 250, 500, 1_000, 2_000, 4_000, 8_000, 12_000, 14_000, 16_000]
+        let freqs: [Float] = [32, 64, 128, 250, 500, 1_000, 2_000, 4_000, 8_000, 12_000, 14_000, 16_000]
         for (i, band) in eq.bands.enumerated() {
             band.filterType = .parametric
             band.frequency  = freqs[i]
@@ -136,6 +139,8 @@ final class PlayerViewModel: ObservableObject {
         gains[band]         = value
         eq.bands[band].gain = value
     }
+    
+    
 
     func togglePlay() {
         guard !isPlaying else { pause(); return }
