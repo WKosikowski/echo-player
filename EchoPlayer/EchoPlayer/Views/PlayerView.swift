@@ -6,89 +6,70 @@
 //
 
 import SwiftUI
+import SwiftUI
 
-struct PlayerView: View {
+struct AudioKitPlayerView: View {
+    @State var vm = PlayerViewModel()
+    @State var someval = 0.0
     var body: some View {
-        VStack(spacing: 20) {
-            // Playback Controls
-            HStack(spacing: 40) {
-                Button( action: {}) {
-                    Image(systemName: "backward.fill")
-                        .font(.largeTitle)
-                }
-                Button(action: {}) {
-                    Image(systemName: "pause.circle.fill")
-                        .font(.system(size: 64))
-                }
-                Button(action: {}) {
-                    Image(systemName: "forward.fill")
-                        .font(.largeTitle)
-                }
-            }
-            
-            // Progress Bar (non-functional seeking due to AVAudioEngine limits)
-            VStack {
-//                Slider(value: )
+        VStack {
+            ZStack{
                 HStack {
-                    Text("Current Time")
-                    Spacer()
-                    Text("Duration")
-                }
-            }.padding(.horizontal)
-            
-            // Volume Control
-            VStack {
-                Text("Volume")
-//                Slider(value:
-//                , set: { newVal in
-//                }), in: 0...1)
-            }.padding(.horizontal)
-            
-            // Playback Speed
-            VStack {
-                Text("Playback Speed:")
-//                Slider(value: Binding(get: {
-//                }, set: { newVal in
-//                }), in: 0.5...2.0)
-            }.padding(.horizontal)
-            
-            // Equalizer (10 bands)
-            VStack(spacing: 10) {
-                Text("Equalizer")
-                HStack {
-                    ForEach(0..<10) { band in
-                        VStack {
-//                            Slider(value: Binding(get: {
-//                            }, set: { newVal in
-//                            }), in: -12...12)
-//                            .rotationEffect(.degrees(-90))
-//                            .frame(height: 150)
-                            Text("\(eqBandFrequency(band: band)) Hz")
-                                .font(.caption2)
-                        }
+                    
+                    Button( action: {}) {
+                        Image(systemName: "backward.fill")
+                            .font(.largeTitle)
+                    }
+                    Button(action: {vm.play()}) {
+                        Image(systemName: "pause.circle.fill")
+                            .font(.system(size: 64))
+                    }
+                    Button(action: {}) {
+                        Image(systemName: "forward.fill")
+                            .font(.largeTitle)
                     }
                 }
-            }.padding()
+                
+                Slider(value: $someval, in: 0...1)
+                    .accentColor(.blue)
+                    .padding()
+                    .frame(width: 200, height: 50)
+                    .offset(x: 250)
+                
+                Button(action: vm.openFile) {
+                    Label("Open", systemImage: "folder")
+                }
+                .offset(x: -250)
+            }
+            .padding()
             
+            HStack {
+                Text(formatTime(vm.playbackTime))
+                    .font(.system(.caption, design: .monospaced))
+                Slider(value: Binding(
+                    get: { vm.playbackProgress },
+                    set: { vm.playbackProgress = $0 }
+                ), in: 0...1, onEditingChanged: { editing in
+                    if !editing { vm.seek(to: vm.playbackProgress) }
+                })
+                .frame(minWidth: 120)
+                Text(formatTime(vm.duration))
+                    .font(.system(.caption, design: .monospaced))
+            }
+            .padding(.horizontal)
+            .disabled(vm.duration <= 0)
             Spacer()
         }
-        .padding()
     }
     
-    func timeString(_ seconds: Double) -> String {
-        guard !seconds.isNaN else { return "0:00" }
-        let mins = Int(seconds) / 60
-        let secs = Int(seconds) % 60
-        return String(format: "%d:%02d", mins, secs)
-    }
-    
-    func eqBandFrequency(band: Int) -> Int {
-        // Match frequencies from CrossfadeAudioPlayer
-        let freqs = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
-        return band < freqs.count ? freqs[band] : 0
+    private func formatTime(_ time: Double) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 }
 
+
 #Preview {
-    PlayerView()
+    AudioKitPlayerView()
 }
