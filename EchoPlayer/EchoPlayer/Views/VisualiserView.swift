@@ -5,9 +5,9 @@
 //  Created by Wojciech Kosikowski on 08/07/2025.
 //
 
-
 import SwiftUI
 
+// VisualiserView presents a real-time audio spectrum visualization as a colorful bar graph.
 // VisualiserView presents a real-time audio spectrum visualization as a colorful bar graph.
 struct VisualiserView: View {
     // Access the PlayerViewModel, which provides the spectrum data
@@ -17,34 +17,35 @@ struct VisualiserView: View {
         // Use GeometryReader to make the bars responsive to container size
         GeometryReader { geo in
             // Calculate each bar's width based on the total number of spectrum bins
-            let barWidth = geo.size.width / CGFloat(vm.spectrum.count)
+            let barWidth = (geo.size.width - CGFloat(vm.spectrum.count) - 1) / CGFloat(vm.spectrum.count)
             // Arrange bars horizontally, aligned to the bottom with small spacing
-            ZStack{
-                Rectangle()
-                    .fill(.blue)
-                    .frame(width: geo.size.width, height: 5)
-                HStack(alignment: .top, spacing: 1) {
-                    Rectangle()
-                        .frame(width: 0, height: 320)
-                    // Iterate through all spectrum values to render each bar
-                    ForEach(vm.spectrum.indices, id: \.self) { i in
-                        // Assign a unique hue for each bar based on its position
-                        let hue = Double(i) / Double(vm.spectrum.count) * 0.33
-                        // Generate a vibrant color for the bar
-                        let color = Color(hue: hue, saturation: 0.9, brightness: 1.0)
-                        Rectangle()
-                        // Fill each bar with a vertical gradient from transparent to full color
-                            .fill(LinearGradient(
-                                gradient: Gradient(colors: [color.opacity(0.1), color]),
-                                startPoint: .leading,
-                                endPoint: .trailing))
-                        // Set each bar's frame, scaling height according to spectrum value
-                            .frame(width: barWidth,
-                                   height: geo.size.height * CGFloat(vm.spectrum[i]))
-                            .alignmentGuide(.bottom) { d in d[.bottom] }
-                            .cornerRadius(3) // Slightly round bar corners
-                            .shadow(color: color.opacity(0.8), radius: 8, x: 0, y: 0) // Add glowing shadow in bar's color
-                    }
+            Canvas { context, size in
+                let spectrum = vm.spectrum
+                let barSpacing: CGFloat = 2
+                let barCount = spectrum.count
+                guard barCount > 0 else { return }
+                let barWidth = (size.width - barSpacing * CGFloat(barCount - 1)) / CGFloat(barCount)
+                let normalLine = CGRect(x: 0, y: size.height * 0.5, width: size.width, height: 1)
+                context.fill(Path(normalLine), with: .color(.white))
+                
+                for i in 0 ..< barCount {
+                    let value = spectrum[i]
+                    let hue = Double(i) / Double(barCount) * 0.33
+                    let color = Color(hue: hue, saturation: 0.9, brightness: 1.0)
+                    let x = CGFloat(i) * (barWidth + barSpacing)
+                    let barHeight = size.height * CGFloat(value)
+                    let barRect = CGRect(x: x, y: size.height * 0.5 - barHeight * 0.5, width: barWidth, height: barHeight)
+
+                    // Make a vertical gradient from transparent at bottom to color at top
+                    let gradient = Gradient(stops: [
+                        .init(color: color.opacity(0.1), location: 0.0),
+                        .init(color: color, location: 1.0),
+                    ])
+                    context.fill(Path(roundedRect: barRect, cornerRadius: 3), with: .color(color))
+                    context.fill(Path(roundedRect: barRect, cornerRadius: 3), with: .conicGradient(gradient, center: CGPoint(x: barRect.midX, y: barRect.midY)))
+//                    context.fill(Path(roundedRect: barRect, cornerRadius: 3), with: .linearGradient(gradient,
+//                                                                                                    startPoint: CGPoint(x: barRect.midX, y: barRect.maxY),
+//                                                                                                    endPoint: CGPoint(x: barRect.midX, y: barRect.minY)))
                 }
             }
         }
@@ -53,6 +54,5 @@ struct VisualiserView: View {
         // Clip the whole visualization to a rounded rectangle
         .clipShape(RoundedRectangle(cornerRadius: 8))
         // Animate bar changes with a spring effect whenever spectrum changes
-//        .animation(.interpolatingSpring(stiffness: 100, damping: 15), value: vm.spectrum)
     }
 }

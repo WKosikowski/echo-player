@@ -55,16 +55,17 @@ struct AudioKitPlayerView: View {
             }
             .padding(.horizontal)
             .disabled(vm.duration <= 0)
-            
+
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
-                    ForEach(0..<12, id: \.self) { idx in
+                    ForEach(0 ..< 12, id: \.self) { idx in
                         VStack {
                             Slider(value: Binding(
                                 get: { vm.gains[idx] },
-                                set: { vm.updateGain(band: idx, value: $0) }),
-                                   in: -24...24, step: 1)
-                            .frame(width: 120, alignment: .bottom)
+                                set: { vm.updateGain(band: idx, value: $0) }
+                            ),
+                            in: -24 ... 24, step: 1)
+                                .frame(width: 120, alignment: .bottom)
                             Text(label(for: idx))
                                 .font(.caption)
                         }
@@ -76,15 +77,15 @@ struct AudioKitPlayerView: View {
             Text("Gain ±24 dB per band")
                 .font(.footnote)
                 .foregroundColor(.secondary)
-            
+
             VStack {
-                Slider(value: $vm.globalGain, in: -24...24, step: 1)
-                .frame(width: 120, alignment: .bottom)
+                Slider(value: $vm.globalGain, in: -24 ... 24, step: 1)
+                    .frame(width: 120, alignment: .bottom)
                 Text("Global Gain")
                     .font(.caption)
             }
             .padding(.vertical)
-            
+
             if vm.visualiserMode == .spectrum {
                 VisualiserView(vm: vm)
 //                    .frame(height: 150)
@@ -98,9 +99,8 @@ struct AudioKitPlayerView: View {
 //                    .frame(height: 150)
 //                    .padding(.horizontal)
             }
-            
+
             Spacer()
-            
         }
         .frame(minWidth: 500, minHeight: 420)
     }
@@ -110,7 +110,7 @@ struct AudioKitPlayerView: View {
         let seconds = Int(time) % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
-    
+
     private func label(for i: Int) -> String {
         ["32", "64", "128", "250", "500", "1k", "2k", "4k", "8k", "12k", "14k", "16k"][i]
     }
