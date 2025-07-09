@@ -17,6 +17,7 @@ final class PlayerViewModel: ObservableObject {
     }
 
     // Published UI state
+    @Published var showDbs = false
     @Published var spectrumDbMax: Float = 90
     @Published var log: Bool = false
     @Published var isPlaying = false
@@ -30,7 +31,7 @@ final class PlayerViewModel: ObservableObject {
         }
     }
 
-    @Published var globalGain: Float = 1.0 {
+    @Published var globalGain: Float = -12.0 {
         didSet {
             eq.globalGain = globalGain
         }
@@ -111,17 +112,19 @@ final class PlayerViewModel: ObservableObject {
         let sampleRate = file.processingFormat.sampleRate
         let startSampleTime = AVAudioFramePosition(seekTime * sampleRate)
         let length = AVAudioFrameCount(file.length - startSampleTime)
+        playbackProgress = progress
 
         do {
             if length > 0 {
                 player.scheduleSegment(file, startingFrame: startSampleTime, frameCount: length, at: nil) {
-                    DispatchQueue.main.async { [weak self] in
-                        self?.isPlaying = false
-                    }
+//                    DispatchQueue.main.async { [weak self] in
+//                        self?.isPlaying = false
+//                    }
                 }
-                togglePlay()
             }
         }
+        play()
+        print(playbackProgress, playbackTime)
     }
 
     // Tap post‑EQ for visualiser
@@ -204,7 +207,11 @@ final class PlayerViewModel: ObservableObject {
                     let slice = mags[(i * step) ..< ((i + 1) * step)]
                     let mag = vDSP.mean(slice)
                     // Convert magnitudes to dB and normalize for logarithmic visualizer
-                    reduced[i] = 20 * log10(max(mag, 1e-7))
+                    if showDbs {
+                        reduced[i] = 20 * log10(max(mag, 1e-7))
+                    } else {
+                        reduced[i] = mag
+                    }
                 }
 
                 // Also downsample phases similarly
@@ -215,7 +222,11 @@ final class PlayerViewModel: ObservableObject {
                 }
 
                 // Normalize dB values: 0 dB is max, -60 dB or less is silence (0)
-                reduced = reduced.map { min(max(($0 + 60) / spectrumDbMax, 0), 1) }
+                if showDbs {
+                    reduced = reduced.map { min(max(($0 + 60) / spectrumDbMax, 0), 1) }
+                } else {
+                    reduced = reduced.map { $0 / 25 } // Normalize to 0–1
+                }
 
                 DispatchQueue.main.async { [weak self] in
                     self?.spectrum = reduced
@@ -231,6 +242,7 @@ final class PlayerViewModel: ObservableObject {
     }
 
     func togglePlay() {
+        print(isPlaying)
         guard !isPlaying else { pause(); return }
         if !engine.isRunning { try? engine.start() }
         if !player.isPlaying { player.play() }

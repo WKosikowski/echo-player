@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct AudioKitPlayerView: View {
-    @State var vm = PlayerViewModel()
+    @StateObject var vm = PlayerViewModel()
     var body: some View {
         VStack {
             ZStack {
@@ -88,17 +88,28 @@ struct AudioKitPlayerView: View {
 
             if vm.visualiserMode == .spectrum {
                 VisualiserView(vm: vm)
-//                    .frame(height: 150)
                     .padding(.horizontal)
             } else if vm.visualiserMode == .sine {
-//                SineVisualiserView()
-//                    .frame(height: 150)
-//                    .padding(.horizontal)
+                SineVisualiserView(vm: vm)
+                    .padding(.horizontal)
             } else if vm.visualiserMode == .metalSum {
 //                MetalSumVisualiserView()
 //                    .frame(height: 150)
 //                    .padding(.horizontal)
             }
+            HStack {
+                Button("Spectrum") { vm.visualiserMode = .spectrum; print(vm.visualiserMode) }
+                Button("Sine waves") { vm.visualiserMode = .sine }
+                Button("Metal Sum") { vm.visualiserMode = .metalSum }
+            }
+            .buttonStyle(.bordered)
+            .padding(.bottom, 4)
+            
+            Toggle(isOn: $vm.showDbs) {
+                Text("Enable Decibel Scale")
+            }
+            .toggleStyle(.checkbox) // macOS only; for iOS use a custom style
+            .padding()
 
             Spacer()
         }
