@@ -75,7 +75,9 @@ final class PlayerViewModel {
 
     private func setupTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            self?.updatePlaybackTime()
+            Task { @MainActor in
+                self?.updatePlaybackTime()
+            }
         }
     }
 
@@ -110,7 +112,7 @@ final class PlayerViewModel {
 
     func seek(to progress: Double) {
         guard let file = audioFile else { return }
-        let sampleRate = file.processingFormat.sampleRate
+        
         let newFrame = AVAudioFramePosition(progress * Double(file.length))
         seekFrameOffset = newFrame
         let framesToPlay = AVAudioFrameCount(file.length - newFrame)
@@ -126,7 +128,6 @@ final class PlayerViewModel {
             )
         }
         play()
-        print(playbackProgress, playbackTime)
     }
 
     // Tap post‑EQ for visualiser
@@ -283,3 +284,4 @@ final class PlayerViewModel {
         isPlaying = false
     }
 }
+
