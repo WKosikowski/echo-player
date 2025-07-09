@@ -11,38 +11,39 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 @MainActor
-final class PlayerViewModel: ObservableObject {
+@Observable
+final class PlayerViewModel {
     enum VisualiserMode {
         case spectrum, sine, metalSum
     }
 
     // Published UI state
-    @Published var showDbs = false
-    @Published var spectrumDbMax: Float = 90
-    @Published var log: Bool = false
-    @Published var isPlaying = false
-    @Published var gains: [Float] = Array(repeating: 0, count: 12)
-    @Published var spectrum: [Float] = Array(repeating: 0, count: 64) // 0‥1
-    @Published var spectrumPhase: [Float] = Array(repeating: 0, count: 64)
-    @Published var visualiserMode: VisualiserMode = .spectrum
-    @Published var volume: Float = 1.0 {
+     var showDbs = false
+     var spectrumDbMax: Float = 90
+     var log: Bool = false
+     var isPlaying = false
+     var gains: [Float] = Array(repeating: 0, count: 12)
+     var spectrum: [Float] = Array(repeating: 0, count: 64) // 0‥1
+     var spectrumPhase: [Float] = Array(repeating: 0, count: 64)
+     var visualiserMode: VisualiserMode = .spectrum
+     var volume: Float = 1.0 {
         didSet {
             player.volume = volume
         }
     }
 
-    @Published var globalGain: Float = -12.0 {
+     var globalGain: Float = -12.0 {
         didSet {
             eq.globalGain = globalGain
         }
     }
 
-    @Published var assetFileName: String = ""
+     var assetFileName: String = ""
 
     // Playback progress properties
-    @Published var playbackProgress: Double = 0.0
-    @Published private(set) var playbackTime: Double = 0.0
-    @Published private(set) var duration: Double = 0.0
+     var playbackProgress: Double = 0.0
+     private(set) var playbackTime: Double = 0.0
+     private(set) var duration: Double = 0.0
 
     // Audio graph
     private let engine = AVAudioEngine()
@@ -65,9 +66,9 @@ final class PlayerViewModel: ObservableObject {
         window = vDSP.window(ofType: Float.self, usingSequence: .hanningDenormalized, count: fftSize, isHalfWindow: false)
         setupTimer()
     }
-
+    
     deinit {
-        timer?.invalidate()
+//        timer?.invalidate()
     }
 
     private func setupTimer() {

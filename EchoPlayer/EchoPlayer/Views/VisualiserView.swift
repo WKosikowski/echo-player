@@ -11,7 +11,7 @@ import SwiftUI
 // VisualiserView presents a real-time audio spectrum visualization as a colorful bar graph.
 struct VisualiserView: View {
     // Access the PlayerViewModel, which provides the spectrum data
-    @ObservedObject var vm: PlayerViewModel
+    @Bindable var vm: PlayerViewModel
 
     var body: some View {
         // Use GeometryReader to make the bars responsive to container size

@@ -7,13 +7,18 @@
 import Combine
 import SwiftUI
 
-final class FileListModel: ObservableObject {
-    @Published var files: [ListedFile] = []
+@Observable
+final class FileListModel {
+    
+    private let decoder: JSONDecoder = JSONDecoder()
+    private let store: UserDefaults = UserDefaults.standard
+    private let encoder: JSONEncoder = JSONEncoder()
+    
+    var files: [ListedFile] = []
 
     init() {
         do {
-            if let list = UserDefaults.standard.value(forKey: "lastList") as? Data {
-                let decoder = JSONDecoder()
+            if let list = store.value(forKey: "lastPlaybackList") as? Data {
                 files = try decoder.decode([ListedFile].self, from: list)
             }
         } catch {
@@ -21,11 +26,10 @@ final class FileListModel: ObservableObject {
         }
     }
 
-    func saveToDefault() {
+    func saveToStore() {
         do {
-            let encoder = JSONEncoder()
             let data = try encoder.encode(files)
-            UserDefaults.standard.set(data, forKey: "lastList")
+           store.set(data, forKey: "lastPlaybackList")
         } catch {
             print(error)
         }
@@ -39,7 +43,7 @@ final class FileListModel: ObservableObject {
                 let fileURLs = filesRecursively(in: url)
                 added.append(contentsOf: fileURLs)
             } else if isSupported(url) {
-                if url.pathExtension == "epl" || url.pathExtension == "json" {
+                if url.pathExtension == "eplist" {
                     loadJSON(url: url)
                 } else {
                     added.append(ListedFile(url: url))
@@ -50,19 +54,19 @@ final class FileListModel: ObservableObject {
         let existingPaths = Set(files.map { $0.fullPath })
         let deduped = added.filter { !existingPaths.contains($0.fullPath) }
         files.append(contentsOf: deduped)
-        saveToDefault()
+        saveToStore()
     }
 
     func clear() {
         files = []
-        saveToDefault()
+        saveToStore()
     }
 
     // Save as JSON to chosen file
     @MainActor
     func saveToJSON() async {
         let savePanel = NSSavePanel()
-        savePanel.allowedFileTypes = ["epl"]
+        savePanel.allowedFileTypes = ["eplist"]
         savePanel.nameFieldStringValue = "file-list.epl"
         if savePanel.runModal() == .OK, let url = savePanel.url {
             do {
@@ -96,7 +100,7 @@ final class FileListModel: ObservableObject {
     @MainActor
     func loadJSONFromPanel() async {
         let openPanel = NSOpenPanel()
-        openPanel.allowedFileTypes = ["epl"]
+        openPanel.allowedFileTypes = ["eplist"]
         openPanel.allowsMultipleSelection = false
         openPanel.canChooseDirectories = false
         openPanel.canChooseFiles = true
@@ -114,7 +118,7 @@ final class FileListModel: ObservableObject {
                 print("Error loading JSON: \(error)")
             }
         }
-        saveToDefault()
+        saveToStore()
     }
 }
 
@@ -130,7 +134,7 @@ private func filesRecursively(in directory: URL) -> [ListedFile] {
     return files
 }
 
-private let supportedExtensions: Set<String> = ["mp3", "wav", "epl", "json", "eps"]
+private let supportedExtensions: Set<String> = ["mp3", "wav", "eplist"]
 
 private func isSupported(_ url: URL) -> Bool {
     supportedExtensions.contains(url.pathExtension.lowercased())

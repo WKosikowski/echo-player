@@ -9,15 +9,14 @@ import SwiftUI
 
 @main
 struct EchoPlayerApp: App {
-    @StateObject var vm = PlayerViewModel()
-    @StateObject var model = FileListModel()
-
+    @State var vm = PlayerViewModel()
+    @State var fileModel = FileListModel()
     var body: some Scene {
         WindowGroup {
             PlayerView(vm: vm)
         }
         WindowGroup("Playlist View", id: "playlist") {
-            FileListView(model: model, playerVM: vm)
+            FileListView(model: fileModel, playerVM: vm)
         }
     }
 }

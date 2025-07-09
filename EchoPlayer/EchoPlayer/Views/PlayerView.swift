@@ -8,10 +8,7 @@
 import SwiftUI
 
 struct PlayerView: View {
-    @ObservedObject var vm: PlayerViewModel
-    init(vm: PlayerViewModel) {
-        self.vm = vm
-    }
+    @Bindable var vm: PlayerViewModel
 
     @Environment(\.openWindow) private var openWindow
     var body: some View {
