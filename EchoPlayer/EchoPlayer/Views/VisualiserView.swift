@@ -19,7 +19,7 @@ struct VisualiserView: View {
             // Calculate each bar's width based on the total number of spectrum bins
             let barWidth = (geo.size.width - CGFloat(vm.spectrum.count) - 1) / CGFloat(vm.spectrum.count)
             // Arrange bars horizontally, aligned to the bottom with small spacing
-            ZStack{
+            ZStack {
                 Canvas { context, size in
                     let spectrum = vm.spectrum
                     let barSpacing: CGFloat = 2
@@ -28,7 +28,7 @@ struct VisualiserView: View {
                     let barWidth = (size.width - barSpacing * CGFloat(barCount - 1)) / CGFloat(barCount)
                     let normalLine = CGRect(x: 0, y: size.height * 0.5, width: size.width, height: 1)
                     context.fill(Path(normalLine), with: .color(.white))
-                    
+
                     for i in 0 ..< barCount {
                         let value = spectrum[i]
                         let hue = Double(i) / Double(barCount) * 0.33
@@ -46,12 +46,10 @@ struct VisualiserView: View {
                         //                    context.fill(Path(roundedRect: barRect, cornerRadius: 3), with: .linearGradient(gradient,
                         //                                                                                                    startPoint: CGPoint(x: barRect.midX, y: barRect.maxY),
                         //                                                                                                    endPoint: CGPoint(x: barRect.midX, y: barRect.minY)))
-
-                        
                     }
                 }
-                HStack{
-                    ForEach(0..<vm.spectrum.count){ i in
+                HStack {
+                    ForEach(0 ..< vm.spectrum.count) { i in
                         Text("\(vm.spectrum[i])")
                     }
                 }

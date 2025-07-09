@@ -5,7 +5,6 @@
 //  Created by Wojciech Kosikowski on 09/07/2025.
 //
 
-
 import SwiftUI
 
 /// VerticalGradientSlider.swift
@@ -57,10 +56,10 @@ public struct VerticalGradientSlider: View {
                 )
                 .frame(width: sliderWidth,
                        height: sliderHeight)
-            
+
             Rectangle()
                 .size(CGSize(width: Double(sliderWidth), height: 1))
-                .offset(x: 0, y: 0.5*sliderHeight - 1)
+                .offset(x: 0, y: 0.5 * sliderHeight - 1)
 
             // Draggable thumb showing the color at the current slider value
             ThumbView(colorAtThumb: .black,
@@ -89,7 +88,7 @@ public struct VerticalGradientSlider: View {
     /// - Returns: The y-offset for positioning the thumb, where value 1 corresponds to top and 0 to bottom.
     private func thumbOffsetY() -> CGFloat {
         let travel = (sliderHeight - thumbHeight) / 2
-        return travel * CGFloat((1 - value)) // Invert value so 1 is top offset, 0 is bottom offset
+        return travel * CGFloat(1 - value) // Invert value so 1 is top offset, 0 is bottom offset
     }
 
     /// Determines the interpolated color at the current slider value within the gradient.

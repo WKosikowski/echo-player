@@ -9,9 +9,15 @@ import SwiftUI
 
 @main
 struct EchoPlayerApp: App {
+    @StateObject var vm = PlayerViewModel()
+    @StateObject var model = FileListModel()
+
     var body: some Scene {
         WindowGroup {
-            AudioKitPlayerView()
+            PlayerView(vm: vm)
+        }
+        WindowGroup("Playlist View", id: "playlist") {
+            FileListView(model: model, playerVM: vm)
         }
     }
 }

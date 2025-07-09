@@ -5,10 +5,9 @@
 //  Created by Wojciech Kosikowski on 09/07/2025.
 //
 
-
-import SwiftUI
-import MetalKit
 import AppKit
+import MetalKit
+import SwiftUI
 
 // MARK: - SineVisualiserView
 
@@ -16,9 +15,10 @@ import AppKit
 /// Each spectrum bin is rendered as an overlaid colored sine wave, with frequency increasing per bin and color mapped to bin index.
 struct SineVisualiserView: View {
     @ObservedObject private var vm: PlayerViewModel // View model providing spectrum and phase data
-    init(vm: PlayerViewModel){
+    init(vm: PlayerViewModel) {
         self.vm = vm
     }
+
     var body: some View {
         GeometryReader { geo in
             ZStack {
@@ -41,7 +41,7 @@ struct SineVisualiserView: View {
                         path.move(to: CGPoint(x: 0, y: midY))
                         let steps = Int(width) // Sample points across the width
                         // Plot the sine wave by connecting points across the width
-                        for x in 0...steps {
+                        for x in 0 ... steps {
                             let fx = Double(x) / Double(steps) * 2 * .pi
                             let y = midY + amplitude * sin(freq * fx + phase)
                             path.addLine(to: CGPoint(x: Double(x), y: y))

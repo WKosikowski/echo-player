@@ -21,7 +21,7 @@ final class PlayerViewModel: ObservableObject {
     @Published var spectrumDbMax: Float = 90
     @Published var log: Bool = false
     @Published var isPlaying = false
-    @Published var gains: [Float] = Array(repeating: 0, count: 12) 
+    @Published var gains: [Float] = Array(repeating: 0, count: 12)
     @Published var spectrum: [Float] = Array(repeating: 0, count: 64) // 0‥1
     @Published var spectrumPhase: [Float] = Array(repeating: 0, count: 64)
     @Published var visualiserMode: VisualiserMode = .spectrum
@@ -158,7 +158,7 @@ final class PlayerViewModel: ObservableObject {
         if panel.runModal() == .OK, let url = panel.url {
             do {
                 audioFile = try AVAudioFile(forReading: url)
-
+                print(url)
                 assetFileName = url.lastPathComponent
                 let avAsset = AVURLAsset(url: url)
 
@@ -172,6 +172,24 @@ final class PlayerViewModel: ObservableObject {
                 }
             } catch { print("Error loading file: \(error)") }
         }
+    }
+
+    func playFile(url: URL) {
+        do {
+            audioFile = try AVAudioFile(forReading: url)
+
+            assetFileName = url.lastPathComponent
+            let avAsset = AVURLAsset(url: url)
+
+            player.stop()
+            if let file = audioFile {
+                player.scheduleFile(file, at: nil)
+                duration = Double(file.length) / file.fileFormat.sampleRate
+                playbackProgress = 0
+                playbackTime = 0
+                play()
+            }
+        } catch { print("Error loading file: \(error)") }
     }
 
     private func process(buffer: AVAudioPCMBuffer) {

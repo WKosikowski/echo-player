@@ -7,8 +7,13 @@
 
 import SwiftUI
 
-struct AudioKitPlayerView: View {
-    @StateObject var vm = PlayerViewModel()
+struct PlayerView: View {
+    @ObservedObject var vm: PlayerViewModel
+    init(vm: PlayerViewModel) {
+        self.vm = vm
+    }
+
+    @Environment(\.openWindow) private var openWindow
     var body: some View {
         VStack {
             ZStack {
@@ -36,7 +41,14 @@ struct AudioKitPlayerView: View {
                 Button(action: vm.openFile) {
                     Label("Open", systemImage: "folder")
                 }
-                .offset(x: -250)
+                .offset(x: -200)
+
+                Button(action: {
+                    openWindow(id: "playlist")
+                }) {
+                    Label("Open Saved List", systemImage: "document")
+                }
+                .offset(x: -320)
             }
             .padding()
 
@@ -103,7 +115,7 @@ struct AudioKitPlayerView: View {
             }
             .buttonStyle(.bordered)
             .padding(.bottom, 4)
-            
+
             Toggle(isOn: $vm.showDbs) {
                 Text("Enable Decibel Scale")
             }
@@ -126,6 +138,6 @@ struct AudioKitPlayerView: View {
     }
 }
 
-#Preview {
-    AudioKitPlayerView()
-}
+// #Preview {
+//    PlayerView()
+// }
