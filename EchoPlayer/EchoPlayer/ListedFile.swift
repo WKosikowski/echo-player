@@ -10,11 +10,11 @@ import SwiftUI
 
 // Model for representing a file entry
 struct ListedFile: Identifiable, Codable {
-    var id: String  { fullPath }
+    var id: String { fullPath }
     let fullPath: String
     let name: String
     let ext: String
-    var duration: Double? 
+    var duration: Double?
 
     var displayName: String { "\(name).\(ext)" }
 

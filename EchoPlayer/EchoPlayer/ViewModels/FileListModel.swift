@@ -9,11 +9,10 @@ import SwiftUI
 
 @Observable
 final class FileListModel {
-    
-    private let decoder: JSONDecoder = JSONDecoder()
-    private let store: UserDefaults = UserDefaults.standard
-    private let encoder: JSONEncoder = JSONEncoder()
-    
+    private let decoder: JSONDecoder = .init()
+    private let store: UserDefaults = .standard
+    private let encoder: JSONEncoder = .init()
+
     var files: [ListedFile] = []
 
     init() {
@@ -29,7 +28,7 @@ final class FileListModel {
     func saveToStore() {
         do {
             let data = try encoder.encode(files)
-           store.set(data, forKey: "lastPlaybackList")
+            store.set(data, forKey: "lastPlaybackList")
         } catch {
             print(error)
         }
@@ -79,8 +78,7 @@ final class FileListModel {
             }
         }
     }
-    
-    
+
     func loadJSON(url: URL) {
         clear()
         do {
@@ -95,7 +93,7 @@ final class FileListModel {
             print("Error loading JSON: \(error)")
         }
     }
-    
+
     // Load files from a JSON file
     @MainActor
     func loadJSONFromPanel() async {

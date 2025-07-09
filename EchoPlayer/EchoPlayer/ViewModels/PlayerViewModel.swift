@@ -18,38 +18,40 @@ final class PlayerViewModel {
     }
 
     // Published UI state
-     var showDbs = false
-     var spectrumDbMax: Float = 90
-     var log: Bool = false
-     var isPlaying = false
-     var gains: [Float] = Array(repeating: 0, count: 12)
-     var spectrum: [Float] = Array(repeating: 0, count: 64) // 0‥1
-     var spectrumPhase: [Float] = Array(repeating: 0, count: 64)
-     var visualiserMode: VisualiserMode = .spectrum
-     var volume: Float = 1.0 {
+    var showDbs = false
+    var spectrumDbMax: Float = 90
+    var log: Bool = false
+    var isPlaying = false
+    var gains: [Float] = Array(repeating: 0, count: 12)
+    var spectrum: [Float] = Array(repeating: 0, count: 64) // 0‥1
+    var spectrumPhase: [Float] = Array(repeating: 0, count: 64)
+    var visualiserMode: VisualiserMode = .spectrum
+    var volume: Float = 1.0 {
         didSet {
             player.volume = volume
         }
     }
 
-     var globalGain: Float = -12.0 {
+    var globalGain: Float = -12.0 {
         didSet {
             eq.globalGain = globalGain
         }
     }
 
-     var assetFileName: String = ""
+    var assetFileName: String = ""
 
     // Playback progress properties
-     var playbackProgress: Double = 0.0
-     private(set) var playbackTime: Double = 0.0
-     private(set) var duration: Double = 0.0
+    var playbackProgress: Double = 0.0
+    private(set) var playbackTime: Double = 0.0
+    private(set) var duration: Double = 0.0
 
     // Audio graph
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
     private let eq = AVAudioUnitEQ(numberOfBands: 12)
     private var audioFile: AVAudioFile?
+
+    private var seekFrameOffset: AVAudioFramePosition = 0
 
     private var timer: Timer?
 
@@ -66,7 +68,7 @@ final class PlayerViewModel {
         window = vDSP.window(ofType: Float.self, usingSequence: .hanningDenormalized, count: fftSize, isHalfWindow: false)
         setupTimer()
     }
-    
+
     deinit {
 //        timer?.invalidate()
     }
@@ -86,7 +88,8 @@ final class PlayerViewModel {
             playbackProgress = 0
             return
         }
-        let currentTime = Double(playerTime.sampleTime) / playerTime.sampleRate
+        let seekOffsetSeconds = Double(seekFrameOffset) / playerTime.sampleRate
+        let currentTime = (Double(playerTime.sampleTime) / playerTime.sampleRate) + seekOffsetSeconds
         playbackTime = currentTime
         duration = Double(file.length) / file.fileFormat.sampleRate
         if duration > 0 {
@@ -107,22 +110,20 @@ final class PlayerViewModel {
 
     func seek(to progress: Double) {
         guard let file = audioFile else { return }
-        let seekTime = progress * (Double(file.length) / file.fileFormat.sampleRate)
-        player.stop()
-        // Schedule file from seekTime
         let sampleRate = file.processingFormat.sampleRate
-        let startSampleTime = AVAudioFramePosition(seekTime * sampleRate)
-        let length = AVAudioFrameCount(file.length - startSampleTime)
+        let newFrame = AVAudioFramePosition(progress * Double(file.length))
+        seekFrameOffset = newFrame
+        let framesToPlay = AVAudioFrameCount(file.length - newFrame)
         playbackProgress = progress
 
-        do {
-            if length > 0 {
-                player.scheduleSegment(file, startingFrame: startSampleTime, frameCount: length, at: nil) {
-//                    DispatchQueue.main.async { [weak self] in
-//                        self?.isPlaying = false
-//                    }
-                }
-            }
+        player.stop()
+        if framesToPlay > 0 {
+            player.scheduleSegment(
+                file,
+                startingFrame: newFrame,
+                frameCount: framesToPlay,
+                at: nil // Play immediately
+            )
         }
         play()
         print(playbackProgress, playbackTime)
@@ -159,6 +160,7 @@ final class PlayerViewModel {
         if panel.runModal() == .OK, let url = panel.url {
             do {
                 audioFile = try AVAudioFile(forReading: url)
+                seekFrameOffset = 0
                 print(url)
                 assetFileName = url.lastPathComponent
                 let avAsset = AVURLAsset(url: url)
@@ -178,6 +180,7 @@ final class PlayerViewModel {
     func playFile(url: URL) {
         do {
             audioFile = try AVAudioFile(forReading: url)
+            seekFrameOffset = 0
 
             assetFileName = url.lastPathComponent
             let avAsset = AVURLAsset(url: url)
