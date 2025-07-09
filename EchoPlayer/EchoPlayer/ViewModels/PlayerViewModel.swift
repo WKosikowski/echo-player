@@ -215,7 +215,7 @@ final class PlayerViewModel: ObservableObject {
                 }
 
                 // Normalize dB values: 0 dB is max, -60 dB or less is silence (0)
-                reduced = reduced.map { min(max(abs($0) / spectrumDbMax, 0), 1) }
+                reduced = reduced.map { min(max(($0 + 60) / spectrumDbMax, 0), 1) }
 
                 DispatchQueue.main.async { [weak self] in
                     self?.spectrum = reduced
