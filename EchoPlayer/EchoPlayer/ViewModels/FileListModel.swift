@@ -39,7 +39,11 @@ final class FileListModel: ObservableObject {
                 let fileURLs = filesRecursively(in: url)
                 added.append(contentsOf: fileURLs)
             } else if isSupported(url) {
-                added.append(ListedFile(url: url))
+                if url.pathExtension == "epl" || url.pathExtension == "json" {
+                    loadJSON(url: url)
+                } else {
+                    added.append(ListedFile(url: url))
+                }
             }
         }
         // Avoid duplicates
@@ -58,8 +62,8 @@ final class FileListModel: ObservableObject {
     @MainActor
     func saveToJSON() async {
         let savePanel = NSSavePanel()
-        savePanel.allowedFileTypes = ["eps"]
-        savePanel.nameFieldStringValue = "file-list.eps"
+        savePanel.allowedFileTypes = ["epl"]
+        savePanel.nameFieldStringValue = "file-list.epl"
         if savePanel.runModal() == .OK, let url = savePanel.url {
             do {
                 let encoder = JSONEncoder()
@@ -71,12 +75,28 @@ final class FileListModel: ObservableObject {
             }
         }
     }
-
+    
+    
+    func loadJSON(url: URL) {
+        clear()
+        do {
+            let data = try Data(contentsOf: url)
+            let decoder = JSONDecoder()
+            let loadedFiles = try decoder.decode([ListedFile].self, from: data)
+            // Avoid duplicates
+            let existingPaths = Set(files.map { $0.fullPath })
+            let deduped = loadedFiles.filter { !existingPaths.contains($0.fullPath) }
+            files.append(contentsOf: deduped)
+        } catch {
+            print("Error loading JSON: \(error)")
+        }
+    }
+    
     // Load files from a JSON file
     @MainActor
-    func loadFromJSON() async {
+    func loadJSONFromPanel() async {
         let openPanel = NSOpenPanel()
-        openPanel.allowedFileTypes = ["eplist"]
+        openPanel.allowedFileTypes = ["epl"]
         openPanel.allowsMultipleSelection = false
         openPanel.canChooseDirectories = false
         openPanel.canChooseFiles = true
@@ -110,7 +130,7 @@ private func filesRecursively(in directory: URL) -> [ListedFile] {
     return files
 }
 
-private let supportedExtensions: Set<String> = ["mp3"]
+private let supportedExtensions: Set<String> = ["mp3", "wav", "epl", "json", "eps"]
 
 private func isSupported(_ url: URL) -> Bool {
     supportedExtensions.contains(url.pathExtension.lowercased())

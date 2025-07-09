@@ -57,7 +57,7 @@ struct FileListView: View {
                 Button("Clear List") { model.clear() }
                 Spacer()
                 Button("Load JSON") {
-                    Task { await model.loadFromJSON() }
+                    Task { await model.loadJSONFromPanel() }
                 }
                 Spacer()
                 Button("Save as JSON") {
