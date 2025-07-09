@@ -21,7 +21,7 @@ final class PlayerViewModel: ObservableObject {
     @Published var spectrumDbMax: Float = 90
     @Published var log: Bool = false
     @Published var isPlaying = false
-    @Published var gains: [Float] = Array(repeating: 0, count: 12)
+    @Published var gains: [Float] = Array(repeating: 0, count: 12) 
     @Published var spectrum: [Float] = Array(repeating: 0, count: 64) // 0‥1
     @Published var spectrumPhase: [Float] = Array(repeating: 0, count: 64)
     @Published var visualiserMode: VisualiserMode = .spectrum
@@ -148,6 +148,7 @@ final class PlayerViewModel: ObservableObject {
             band.gain = 0
             band.bypass = false
         }
+        eq.globalGain = -12
     }
 
     func openFile() {
@@ -237,8 +238,8 @@ final class PlayerViewModel: ObservableObject {
     }
 
     func updateGain(band: Int, value: Float) {
-        gains[band] = value
-        eq.bands[band].gain = value
+        gains[band] = value * 24
+        eq.bands[band].gain = value * 24
     }
 
     func togglePlay() {

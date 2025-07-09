@@ -58,14 +58,13 @@ struct AudioKitPlayerView: View {
 
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
+                    Spacer()
                     ForEach(0 ..< 12, id: \.self) { idx in
                         VStack {
-                            Slider(value: Binding(
-                                get: { vm.gains[idx] },
-                                set: { vm.updateGain(band: idx, value: $0) }
-                            ),
-                            in: -24 ... 24, step: 1)
-                                .frame(width: 120, alignment: .bottom)
+                            VerticalGradientSlider(value: Binding(get: {
+                                vm.gains[idx] / 24
+                            }, set: { vm.updateGain(band: idx, value: $0)
+                            }), gradient: Gradient(colors: [.green, .yellow, .red]))
                             Text(label(for: idx))
                                 .font(.caption)
                         }
