@@ -10,11 +10,13 @@ import SwiftUI
 struct PlayerView: View {
     @Bindable var vm: PlayerViewModel
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
+    
     var body: some View {
         VStack {
             ZStack {
                 HStack {
-                    Button(action: {}) {
+                    Button(action: { vm.playLast() }) {
                         Image(systemName: "backward.fill")
                             .font(.largeTitle)
                     }
@@ -22,7 +24,7 @@ struct PlayerView: View {
                         Image(systemName: "pause.circle.fill")
                             .font(.system(size: 64))
                     }
-                    Button(action: {}) {
+                    Button(action: { vm.playNext() }) {
                         Image(systemName: "forward.fill")
                             .font(.largeTitle)
                     }
@@ -40,7 +42,9 @@ struct PlayerView: View {
                 .offset(x: -200)
 
                 Button(action: {
-                    openWindow(id: "playlist")
+                    if !vm.joinWindows {
+                        openWindow(id: "playlist")
+                    }
                 }) {
                     Label("Open Saved List", systemImage: "document")
                 }
@@ -117,10 +121,28 @@ struct PlayerView: View {
             }
             .toggleStyle(.checkbox) // macOS only; for iOS use a custom style
             .padding()
+            
+            Toggle(isOn: $vm.joinWindows) {
+                Text("Join Windows")
+            }
+            .toggleStyle(.checkbox) // macOS only; for iOS use a custom style
+            .padding()
+            .onChange(of: vm.joinWindows) { oldValue, newValue in
+                if newValue {
+                    dismissWindow(id: "playlist")
+                }
+            }
+//            .onSubmit {
+//                if vm.joinWindows {
+//                    openWindow(id: "playlist")
+//                } else {
+//                    dismissWindow(id: "playlist")
+//                }
+                
+//            }
 
             Spacer()
         }
-        .frame(minWidth: 500, minHeight: 420)
     }
 
     private func formatTime(_ time: Double) -> String {

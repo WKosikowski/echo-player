@@ -18,6 +18,7 @@ final class PlayerViewModel {
     }
 
     // Published UI state
+    var joinWindows = false
     var showDbs = false
     var spectrumDbMax: Float = 90
     var log: Bool = false
@@ -26,6 +27,7 @@ final class PlayerViewModel {
     var spectrum: [Float] = Array(repeating: 0, count: 64) // 0‥1
     var spectrumPhase: [Float] = Array(repeating: 0, count: 64)
     var visualiserMode: VisualiserMode = .spectrum
+    var currentlyPlaying: ListedFile?
     var volume: Float = 1.0 {
         didSet {
             player.volume = volume
@@ -45,6 +47,12 @@ final class PlayerViewModel {
         }
         return "[♪ \(Int(max(1, playbackProgress * 100)))%] " + assetFileName
     }
+    
+    private let decoder: JSONDecoder = .init()
+    private let store: UserDefaults = .standard
+    private let encoder: JSONEncoder = .init()
+    
+    var files: [ListedFile] = []
 
     // Playback progress properties
     var playbackProgress: Double = 0.0
@@ -73,6 +81,14 @@ final class PlayerViewModel {
         setupEngine()
         window = vDSP.window(ofType: Float.self, usingSequence: .hanningDenormalized, count: fftSize, isHalfWindow: false)
         setupTimer()
+        
+        do {
+            if let list = store.value(forKey: "lastPlaybackList") as? Data {
+                files = try decoder.decode([ListedFile].self, from: list)
+            }
+        } catch {
+            print(error)
+        }
     }
 
     deinit {
@@ -102,8 +118,80 @@ final class PlayerViewModel {
         duration = Double(file.length) / file.fileFormat.sampleRate
         if duration > 0 {
             playbackProgress = min(max(currentTime / duration, 0), 1)
+            if playbackProgress >= 1 {
+                playNext()
+            }
         } else {
             playbackProgress = 0
+        }
+        
+        
+    }
+    
+    func nextFile(after file: ListedFile, in files: [ListedFile]) -> ListedFile? {
+        guard let currentIndex = files.firstIndex(where: { $0.id == file.id }) else { return nil }
+        let nextIndex = (currentIndex + 1) % files.count
+        return files[nextIndex]
+    }
+    
+    func previousFile(before file: ListedFile, in files: [ListedFile]) -> ListedFile? {
+        guard !files.isEmpty else { return nil }
+        guard let currentIndex = files.firstIndex(where: { $0.id == file.id }) else { return nil }
+        let previousIndex = (currentIndex - 1 + files.count) % files.count
+        return files[previousIndex]
+    }
+    
+    func playLast() {
+        if let currentlyPlaying = currentlyPlaying {
+            if files.count > 0 {
+                let nextFile = previousFile(before: currentlyPlaying, in: files)!
+                let nextURL = URL(string:  nextFile.fullPath )!
+                
+                do {
+                    audioFile = try AVAudioFile(forReading: nextURL)
+                    seekFrameOffset = 0
+                    
+                    assetFileName = nextURL.lastPathComponent
+                    let avAsset = AVURLAsset(url: nextURL)
+                    
+                    player.stop()
+                    if let file = audioFile {
+                        player.scheduleFile(file, at: nil)
+                        duration = Double(file.length) / file.fileFormat.sampleRate
+                        playbackProgress = 0
+                        playbackTime = 0
+                        play()
+                        self.currentlyPlaying = nextFile
+                    }
+                } catch { print("Error loading file: \(error)") }
+            }
+        }
+    }
+    
+    func playNext() {
+        if let currentlyPlaying = currentlyPlaying {
+            if files.count > 0 {
+                let nextFile = nextFile(after: currentlyPlaying, in: files)!
+                let nextURL = URL(string:  nextFile.fullPath )!
+                
+                do {
+                    audioFile = try AVAudioFile(forReading: nextURL)
+                    seekFrameOffset = 0
+                    
+                    assetFileName = nextURL.lastPathComponent
+                    let avAsset = AVURLAsset(url: nextURL)
+                    
+                    player.stop()
+                    if let file = audioFile {
+                        player.scheduleFile(file, at: nil)
+                        duration = Double(file.length) / file.fileFormat.sampleRate
+                        playbackProgress = 0
+                        playbackTime = 0
+                        play()
+                        self.currentlyPlaying = nextFile
+                    }
+                } catch { print("Error loading file: \(error)") }
+            }
         }
     }
 
@@ -289,4 +377,117 @@ final class PlayerViewModel {
         player.pause()
         isPlaying = false
     }
+    
+    
+    func saveToStore() {
+        do {
+            let data = try encoder.encode(files)
+            store.set(data, forKey: "lastPlaybackList")
+        } catch {
+            print(error)
+        }
+    }
+    
+    // Adds supported files from dropped URLs (recursively for folders)
+    func add(urls: [URL]) {
+        var added: [ListedFile] = []
+        for url in urls {
+            if url.hasDirectoryPath {
+                let fileURLs = filesRecursively(in: url)
+                added.append(contentsOf: fileURLs)
+            } else if isSupported(url) {
+                if url.pathExtension == "eplist" {
+                    loadJSON(url: url)
+                } else {
+                    added.append(ListedFile(url: url))
+                }
+            }
+        }
+        // Avoid duplicates
+        let existingPaths = Set(files.map { $0.fullPath })
+        let deduped = added.filter { !existingPaths.contains($0.fullPath) }
+        files.append(contentsOf: deduped)
+        saveToStore()
+    }
+    
+    func clear() {
+        files = []
+        saveToStore()
+    }
+    
+    // Save as JSON to chosen file
+    @MainActor
+    func saveToJSON() async {
+        let savePanel = NSSavePanel()
+        savePanel.allowedFileTypes = ["eplist", "epl", "eps", "json"]
+        savePanel.nameFieldStringValue = "file-list.eplist"
+        if savePanel.runModal() == .OK, let url = savePanel.url {
+            do {
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .prettyPrinted
+                let data = try encoder.encode(files)
+                try data.write(to: url)
+            } catch {
+                print(error)
+            }
+        }
+    }
+    
+    func loadJSON(url: URL) {
+        clear()
+        do {
+            let data = try Data(contentsOf: url)
+            let decoder = JSONDecoder()
+            let loadedFiles = try decoder.decode([ListedFile].self, from: data)
+            // Avoid duplicates
+            let existingPaths = Set(files.map { $0.fullPath })
+            let deduped = loadedFiles.filter { !existingPaths.contains($0.fullPath) }
+            files.append(contentsOf: deduped)
+        } catch {
+            print("Error loading JSON: \(error)")
+        }
+    }
+    
+    // Load files from a JSON file
+    @MainActor
+    func loadJSONFromPanel() async {
+        let openPanel = NSOpenPanel()
+        openPanel.allowedFileTypes = ["eplist", "eps", "epl", "json"]
+        openPanel.allowsMultipleSelection = false
+        openPanel.canChooseDirectories = false
+        openPanel.canChooseFiles = true
+        
+        if openPanel.runModal() == .OK, let url = openPanel.url {
+            do {
+                let data = try Data(contentsOf: url)
+                let decoder = JSONDecoder()
+                let loadedFiles = try decoder.decode([ListedFile].self, from: data)
+                // Avoid duplicates
+                let existingPaths = Set(files.map { $0.fullPath })
+                let deduped = loadedFiles.filter { !existingPaths.contains($0.fullPath) }
+                files.append(contentsOf: deduped)
+            } catch {
+                print("Error loading JSON: \(error)")
+            }
+        }
+        saveToStore()
+    }
+}
+
+private func filesRecursively(in directory: URL) -> [ListedFile] {
+    let fm = FileManager.default
+    let enumerator = fm.enumerator(at: directory, includingPropertiesForKeys: nil)
+    var files: [ListedFile] = []
+    while let element = enumerator?.nextObject() as? URL {
+        if !element.hasDirectoryPath, isSupported(element) {
+            files.append(ListedFile(url: element))
+        }
+    }
+    return files
+}
+
+private let supportedExtensions: Set<String> = ["mp3", "wav", "eplist", "eps", "epl", "json"]
+
+private func isSupported(_ url: URL) -> Bool {
+    supportedExtensions.contains(url.pathExtension.lowercased())
 }

@@ -48,11 +48,11 @@ struct VisualiserView: View {
                         //                                                                                                    endPoint: CGPoint(x: barRect.midX, y: barRect.minY)))
                     }
                 }
-                HStack {
-                    ForEach(0 ..< vm.spectrum.count) { i in
-                        Text("\(vm.spectrum[i])")
-                    }
-                }
+//                HStack {
+//                    ForEach(0 ..< vm.spectrum.count) { i in
+//                        Text("\(vm.spectrum[i])")
+//                    }
+//                }
             }
         }
         // Set a black background behind the bars

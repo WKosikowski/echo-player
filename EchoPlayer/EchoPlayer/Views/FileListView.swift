@@ -9,8 +9,8 @@ import Combine
 import SwiftUI
 
 struct FileListView: View {
-    @Bindable var model: FileListModel
-    @Bindable var playerVM: PlayerViewModel
+//    @Bindable var model: FileListModel
+    @Bindable var model: PlayerViewModel
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -21,7 +21,9 @@ struct FileListView: View {
                         .padding(.vertical, 2)
                         .onTapGesture(count: 2) {
                             print(entry.fullPath)
-                            playerVM.playFile(url: URL(fileURLWithPath: entry.fullPath))
+//                            playerVM.playFile(url: URL(fileURLWithPath: entry.fullPath))
+                            model.playFile(url: URL(fileURLWithPath: entry.fullPath))
+                            model.currentlyPlaying = entry
                         }
                 }
                 .onMove { indices, newOffset in

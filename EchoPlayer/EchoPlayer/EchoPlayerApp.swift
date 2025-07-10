@@ -10,7 +10,7 @@ import SwiftUI
 @main
 struct EchoPlayerApp: App {
     @State var vm = PlayerViewModel()
-    @State var fileModel = FileListModel()
+//    @State var fileModel = FileListModel()
     @State private var mainWindowIsOpen = true
     @State private var playlistWindowIsOpen = true
 
@@ -18,22 +18,44 @@ struct EchoPlayerApp: App {
 
     var body: some Scene {
         WindowGroup(id: "MainWindow") {
-            PlayerView(vm: vm)
-                .onDisappear {
-                    mainWindowIsOpen = false
-                    playlistWindowIsOpen = false
+            HStack {
+                PlayerView(vm: vm)
+                    .onDisappear {
+                        mainWindowIsOpen = false
+                        playlistWindowIsOpen = false
+                    }
+                    .frame(minWidth: 800, minHeight: 800)
+                if vm.joinWindows {
+                    FileListView(model: vm)
+                    
+                        .onDisappear {
+                            mainWindowIsOpen = false
+                            playlistWindowIsOpen = false
+                        }
+                        .frame(maxWidth: 400)
                 }
+            }
         }
-        WindowGroup("Playlist", id: "playlist") {
-            FileListView(model: fileModel, playerVM: vm)
-                .onDisappear {
-                    mainWindowIsOpen = false
-                    playlistWindowIsOpen = false
-                }
-        }
+        
+        
+            WindowGroup("Playlist", id: "playlist") {
+                //            FileListView(model: fileModel, playerVM: vm)
+                FileListView(model: vm)
+                
+                    .onDisappear {
+                        mainWindowIsOpen = false
+                        playlistWindowIsOpen = false
+                    }
+                    .onDisappear {
+                        vm.joinWindows = true
+                    }
+            }
+            
 
         MenuBarExtra {
-            FileListView(model: fileModel, playerVM: vm)
+//            FileListView(model: fileModel, playerVM: vm)
+            FileListView(model: vm)
+
         } label: {
             MiniPlayerView(vm: vm)
                 .frame(minWidth: 80, maxWidth: 100)
