@@ -14,7 +14,7 @@ import SwiftUI
 /// A SwiftUI view that visualizes a set of sine waves using spectrum (amplitude) and phase data from the PlayerViewModel.
 /// Each spectrum bin is rendered as an overlaid colored sine wave, with frequency increasing per bin and color mapped to bin index.
 struct SineVisualiserView: View {
-    @ObservedObject private var vm: PlayerViewModel // View model providing spectrum and phase data
+    @Bindable private var vm: PlayerViewModel // View model providing spectrum and phase data
     init(vm: PlayerViewModel) {
         self.vm = vm
     }

@@ -9,15 +9,50 @@ import SwiftUI
 
 @main
 struct EchoPlayerApp: App {
-    @StateObject var vm = PlayerViewModel()
-    @StateObject var model = FileListModel()
+    @State var vm = PlayerViewModel()
+    @State var fileModel = FileListModel()
+    @State private var mainWindowIsOpen = true
+    @State private var playlistWindowIsOpen = true
+
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "MainWindow") {
             PlayerView(vm: vm)
+                .onDisappear {
+                    mainWindowIsOpen = false
+                    playlistWindowIsOpen = false
+                }
         }
-        WindowGroup("Playlist View", id: "playlist") {
-            FileListView(model: model, playerVM: vm)
+        WindowGroup("Playlist", id: "playlist") {
+            FileListView(model: fileModel, playerVM: vm)
+                .onDisappear {
+                    mainWindowIsOpen = false
+                    playlistWindowIsOpen = false
+                }
+        }
+
+        MenuBarExtra {
+            FileListView(model: fileModel, playerVM: vm)
+        } label: {
+            MiniPlayerView(vm: vm)
+                .frame(minWidth: 80, maxWidth: 100)
+                .background(.blue)
+        }
+        .menuBarExtraStyle(.window)
+    }
+}
+
+struct MiniPlayerView: View {
+    @Bindable var vm: PlayerViewModel
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Text(vm.menuBarText)
+                .foregroundColor(.primary)
+                .padding(.horizontal, 8)
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
     }
 }

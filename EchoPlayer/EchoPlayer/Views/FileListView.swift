@@ -9,13 +9,8 @@ import Combine
 import SwiftUI
 
 struct FileListView: View {
-    @ObservedObject var model: FileListModel
-    @ObservedObject var playerVM: PlayerViewModel
-
-    init(model: FileListModel, playerVM: PlayerViewModel) {
-        self.model = model
-        self.playerVM = playerVM
-    }
+    @Bindable var model: FileListModel
+    @Bindable var playerVM: PlayerViewModel
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -30,12 +25,12 @@ struct FileListView: View {
                         }
                 }
                 .onMove { indices, newOffset in
-                    print("move")
                     model.files.move(fromOffsets: indices, toOffset: newOffset)
+                    print(indices)
                 }
             }
             .background(Color(NSColor.controlBackgroundColor))
-            .frame(minHeight: 200, maxHeight: 300)
+            .frame(minHeight: 300)
             .onDrop(of: ["public.file-url"], isTargeted: nil) { providers in
                 for provider in providers {
                     provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, _ in

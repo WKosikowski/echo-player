@@ -10,15 +10,15 @@ import SwiftUI
 
 // Model for representing a file entry
 struct ListedFile: Identifiable, Codable {
-    let id: String
+    var id: String { fullPath }
     let fullPath: String
     let name: String
     let ext: String
+    var duration: Double?
 
     var displayName: String { "\(name).\(ext)" }
 
     init(url: URL) {
-        id = UUID().uuidString
         fullPath = url.path
         name = url.deletingPathExtension().lastPathComponent
         ext = url.pathExtension
