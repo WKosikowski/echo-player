@@ -39,6 +39,12 @@ final class PlayerViewModel {
     }
 
     var assetFileName: String = ""
+    var menuBarText: String {
+        if assetFileName.count == 0 {
+            return "♬"
+        }
+        return "[♪ \(Int(max(1, playbackProgress * 100)))%] " + assetFileName
+    }
 
     // Playback progress properties
     var playbackProgress: Double = 0.0
@@ -112,7 +118,7 @@ final class PlayerViewModel {
 
     func seek(to progress: Double) {
         guard let file = audioFile else { return }
-        
+
         let newFrame = AVAudioFramePosition(progress * Double(file.length))
         seekFrameOffset = newFrame
         let framesToPlay = AVAudioFrameCount(file.length - newFrame)
@@ -284,4 +290,3 @@ final class PlayerViewModel {
         isPlaying = false
     }
 }
-

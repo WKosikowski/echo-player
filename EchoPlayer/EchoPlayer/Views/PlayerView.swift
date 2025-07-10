@@ -9,7 +9,6 @@ import SwiftUI
 
 struct PlayerView: View {
     @Bindable var vm: PlayerViewModel
-
     @Environment(\.openWindow) private var openWindow
     var body: some View {
         VStack {
