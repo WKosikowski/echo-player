@@ -56,7 +56,7 @@ struct PlayerView: View {
                             .font(.largeTitle)
                     }
                     Button(action: { vm.togglePlay() }) {
-                        Image(systemName: "pause.circle.fill")
+                        Image(systemName: ((vm.isPlaying) ? "pause.circle.fill" : "play.circle.fill"))
                             .font(.system(size: 64))
                     }
                     Button(action: { vm.playNext() }) {
@@ -64,13 +64,7 @@ struct PlayerView: View {
                             .font(.largeTitle)
                     }
                 }
-//                HStack{
                 VolumeControl(volume: $vm.volume, lastVolume: vm.volume)
-//                    Slider(value: $vm.volume, in: 0 ... 1)
-//                        .accentColor(.blue)
-//                        .padding()
-//                        .frame(width: 200, height: 50)
-//                }
                     .offset(x: 250)
             }
             .padding()
@@ -119,16 +113,35 @@ struct PlayerView: View {
                     .font(.caption)
             }
             .padding(.vertical)
-
-            if vm.visualiserMode == .spectrum {
-                VisualiserView(vm: vm)
-                    .padding(.horizontal)
-            } else if vm.visualiserMode == .sine {
-                SineVisualiserView(vm: vm)
-                    .padding(.horizontal)
-            } else if vm.visualiserMode == .metalSum {
-                MetalEnvelopeVisualiserView(vm: vm)
-                    .padding(.horizontal)
+            ZStack {
+                if vm.visualiserMode == .spectrum {
+                    VisualiserView(vm: vm)
+                        .padding(.horizontal)
+                } else if vm.visualiserMode == .sine {
+                    SineVisualiserView(vm: vm)
+                        .padding(.horizontal)
+                } else if vm.visualiserMode == .metalSum {
+                    MetalEnvelopeVisualiserView(vm: vm)
+                        .padding(.horizontal)
+                }
+                HStack{
+                    Spacer()
+                    VStack {
+                        Toggle(isOn: $vm.visualiserFullScreen) {
+                            Text("full screen")
+                        }
+                        .offset(x: -25, y: 5)
+                        .onChange(of: vm.visualiserFullScreen) { oldValue, newValue in
+                            if !newValue {
+                                dismissWindow(id: "visualiser fullscreen")
+                            } else {
+                                openWindow(id: "visualiser fullscreen")
+                                makeVisualiserFullscreen()
+                            }
+                        }
+                        Spacer()
+                    }
+                }
             }
             HStack {
                 Button("Spectrum") { vm.visualiserMode = .spectrum; print(vm.visualiserMode) }
@@ -136,7 +149,7 @@ struct PlayerView: View {
                 Button("Metal Sum") { vm.visualiserMode = .metalSum }
             }
             .buttonStyle(.bordered)
-            .padding(.bottom, 4)
+            .padding(.top, 8)
 
             Toggle(isOn: $vm.showDbs) {
                 Text("Enable Decibel Scale")
@@ -167,6 +180,16 @@ struct PlayerView: View {
 
     private func label(for i: Int) -> String {
         ["32", "64", "128", "250", "500", "1k", "2k", "4k", "8k", "12k", "14k", "16k"][i]
+    }
+    
+    private func makeVisualiserFullscreen() {
+        // Find the NSWindow for the specific WindowGroup
+        for window in NSApplication.shared.windows {
+            if window.title == "Visualiser" { // Match by window title
+                window.toggleFullScreen(nil) // Toggle fullscreen
+                break
+            }
+        }
     }
 }
 

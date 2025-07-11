@@ -24,6 +24,7 @@ final class PlayerViewModel {
     }
 
     // Published UI state
+    var visualiserFullScreen = false
     var joinWindows = false
     var showDbs = false
     var spectrumDbMax: Float = 90
@@ -156,7 +157,9 @@ final class PlayerViewModel {
     
     func playPrev() {
         if let currentlyPlaying = currentlyPlaying {
-            if files.count > 0 {
+            if playbackTime > 3 {
+                play(id: currentlyPlaying.fullPath)
+            } else if files.count > 0 {
                 let nextFile = previousFile(before: currentlyPlaying, in: files)!
                 let prevUrl = URL(string: nextFile.fullPath)!
                 playAsset(at: prevUrl)
@@ -335,6 +338,11 @@ private func filesRecursively(in directory: URL) -> [ListedFile] {
 
 extension PlayerViewModel {
     private func updatePlaybackTime() {
+        if let currentlyPlaying = currentlyPlaying {
+            if !isPlaying{
+                return
+            }
+        }
         guard let nodeTime = player.lastRenderTime,
               let playerTime = player.playerTime(forNodeTime: nodeTime),
               let file = audioFile
@@ -458,7 +466,11 @@ extension PlayerViewModel {
                 if showDbs {
                     reduced = reduced.map { min(max(($0 + 60) / spectrumDbMax, 0), 1) }
                 } else {
-                    reduced = reduced.map { $0 / 25 } // Normalize to 0–1
+                    if visualiserMode == .metalSum {
+                        reduced = reduced.map { $0 / 2 } // Normalize to 0–1
+                    } else {
+                        reduced = reduced.map { $0 / 25 } // Normalize to 0–1
+                    }
                 }
 
                 DispatchQueue.main.async { [weak self] in
