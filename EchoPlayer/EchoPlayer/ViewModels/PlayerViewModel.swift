@@ -222,10 +222,19 @@ final class PlayerViewModel {
 
     func togglePlay() {
         print(isPlaying)
-        guard !isPlaying else { pause(); return }
-        if !engine.isRunning { try? engine.start() }
-        if !player.isPlaying { player.play() }
-        isPlaying = true
+        if !isPlaying {
+            if let currentlyPlaying {
+                if !engine.isRunning { try? engine.start() }
+                if !player.isPlaying { player.play() }
+                isPlaying = true
+            } else if files.count > 0 {
+                play(id: files[0].fullPath)
+            }
+        } else {
+            pause()
+            isPlaying = false
+        }
+        
     }
 
     func play() {
