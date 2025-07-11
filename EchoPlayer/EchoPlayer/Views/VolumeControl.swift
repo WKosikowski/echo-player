@@ -28,9 +28,9 @@ struct VolumeControl: View {
         switch v {
         case 0:
             return "speaker.slash.fill"
-        case 0..<0.33:
+        case 0 ..< 0.33:
             return "speaker.wave.1.fill"
-        case 0.33..<0.66:
+        case 0.33 ..< 0.66:
             return "speaker.wave.2.fill"
         default:
             return "speaker.wave.3.fill"
@@ -49,18 +49,18 @@ struct VolumeControl: View {
     }
 }
 
-//Muted
-//speaker.slash.fill
-//Speaker with a slash for “off”
-//Low volume
-//speaker.wave.1.fill
-//One wave line
-//Medium volume
-//speaker.wave.2.fill
-//Two wave lines
-//High volume
-//speaker.wave.3.fill
-//Three wave lines
-//Speaker only
-//speaker.fill
-//Solid speaker glyph, no waves
+// Muted
+// speaker.slash.fill
+// Speaker with a slash for “off”
+// Low volume
+// speaker.wave.1.fill
+// One wave line
+// Medium volume
+// speaker.wave.2.fill
+// Two wave lines
+// High volume
+// speaker.wave.3.fill
+// Three wave lines
+// Speaker only
+// speaker.fill
+// Solid speaker glyph, no waves

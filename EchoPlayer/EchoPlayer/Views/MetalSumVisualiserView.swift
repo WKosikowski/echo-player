@@ -5,9 +5,9 @@
 //  Created by Wojciech Kosikowski on 11/07/2025.
 //
 
-import SwiftUI
-import MetalKit
 import AppKit
+import MetalKit
+import SwiftUI
 
 /// A SwiftUI wrapper for an MTKView that renders a dynamic sum of sine waves using Metal shaders.
 /// This view passes amplitude, phase, and frequency buffers (from PlayerViewModel) to the GPU, where the Metal shader generates the summed waveform and assigns color per vertex.
@@ -33,7 +33,7 @@ struct MetalEnvelopeVisualiserView: NSViewRepresentable {
     }
 
     // Update the coordinator's reference to the current PlayerViewModel (needed for live data)
-    func updateNSView(_ nsView: MTKView, context: Context) {
+    func updateNSView(_: MTKView, context: Context) {
         context.coordinator.vm = vm
     }
 
@@ -60,6 +60,7 @@ struct MetalEnvelopeVisualiserView: NSViewRepresentable {
         struct Uniforms {
             var binCount: UInt32
         }
+
         var uniforms = Uniforms(binCount: 64)
         var uniformsBuffer: MTLBuffer?
 
@@ -67,7 +68,8 @@ struct MetalEnvelopeVisualiserView: NSViewRepresentable {
         init(vm: PlayerViewModel) {
             self.vm = vm
             guard let dev = MTLCreateSystemDefaultDevice(),
-                  let queue = dev.makeCommandQueue() else {
+                  let queue = dev.makeCommandQueue()
+            else {
                 fatalError("Failed to create Metal device or command queue")
             }
             device = dev
@@ -110,7 +112,7 @@ struct MetalEnvelopeVisualiserView: NSViewRepresentable {
             // Calculate frequency for each bin, smoothly from minPeriods to maxPeriods
             let minPeriods: Float = 2.1
             let maxPeriods: Float = 16.0
-            var frequencies = (0..<binCount).map { i in
+            var frequencies = (0 ..< binCount).map { i in
                 let t = Float(i) / max(Float(binCount - 1), 1)
                 let freq = minPeriods + (maxPeriods - minPeriods) * t
                 return freq
@@ -188,7 +190,7 @@ struct MetalEnvelopeVisualiserView: NSViewRepresentable {
         }
 
         // Handle view resize (not used here, but required by MTKViewDelegate)
-        func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+        func mtkView(_: MTKView, drawableSizeWillChange _: CGSize) {
             // Handle size changes if needed
         }
         // All CPU-side waveform logic is removed; GPU shader generates waveform and color.

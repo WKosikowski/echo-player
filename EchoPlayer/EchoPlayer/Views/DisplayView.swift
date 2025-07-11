@@ -5,8 +5,6 @@
 //  Created by Wojciech Kosikowski on 11/07/2025.
 //
 
-
-
 import SwiftUI
 
 struct DisplayView: View {
@@ -24,4 +22,3 @@ struct DisplayView: View {
         .padding(.bottom, 5)
     }
 }
-

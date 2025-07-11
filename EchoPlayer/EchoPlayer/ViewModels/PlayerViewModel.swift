@@ -16,7 +16,6 @@ enum Config {
     static let supportedExtensions: Set<String> = ["mp3", "wav", "eplist", "eps", "epl", "json"]
 }
 
-
 @Observable
 final class PlayerViewModel {
     enum VisualiserMode {
@@ -55,7 +54,7 @@ final class PlayerViewModel {
         return "[♪ \(Int(max(1, playbackProgress * 100)))%] " + assetFileName
     }
 
-    //move to playlist
+    // move to playlist
     var files: [ListedFile] = []
 
     // Playback progress properties
@@ -128,7 +127,7 @@ final class PlayerViewModel {
             }
             return results
         }
-        self.add(urls: urls)
+        add(urls: urls)
     }
 
     // move to playlist
@@ -151,10 +150,10 @@ final class PlayerViewModel {
             let assetUrlString = asset.fullPath
             let url = URL(string: assetUrlString)!
             playAsset(at: url)
-            self.currentlyPlaying = asset
+            currentlyPlaying = asset
         }
     }
-    
+
     func playPrev() {
         if let currentlyPlaying = currentlyPlaying {
             if playbackTime > 3 {
@@ -237,7 +236,6 @@ final class PlayerViewModel {
             pause()
             isPlaying = false
         }
-        
     }
 
     func play() {
@@ -339,7 +337,7 @@ private func filesRecursively(in directory: URL) -> [ListedFile] {
 extension PlayerViewModel {
     private func updatePlaybackTime() {
         if let currentlyPlaying = currentlyPlaying {
-            if !isPlaying{
+            if !isPlaying {
                 return
             }
         }
@@ -505,4 +503,3 @@ extension PlayerViewModel {
         eq.globalGain = -12
     }
 }
-

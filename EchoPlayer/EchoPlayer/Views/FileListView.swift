@@ -30,7 +30,7 @@ struct FileListView: View {
             .background(Color(NSColor.controlBackgroundColor))
             .frame(minHeight: 300)
             .onDrop(of: ["public.file-url"], isTargeted: nil) { providers in
-                Task { 
+                Task {
                     await model.acceptDrop(from: providers)
                 }
                 return true

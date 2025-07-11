@@ -34,39 +34,21 @@ struct EchoPlayerApp: App {
                 }
             }
         }
-        
+
         WindowGroup("Visualiser", id: "visualiser fullscreen") {
             if vm.visualiserMode == .spectrum {
                 VisualiserView(vm: vm)
-                    .onAppear {
-                        DispatchQueue.main.async {
-                            if let window = NSApplication.shared.windows.first {
-                                window.toggleFullScreen(nil)
-                            }
-                        }
-                    }
+                    .onDisappear { vm.visualiserFullScreen = false }
             } else if vm.visualiserMode == .sine {
                 SineVisualiserView(vm: vm)
-                    .onAppear {
-                        DispatchQueue.main.async {
-                            if let window = NSApplication.shared.windows.first {
-                                window.toggleFullScreen(nil)
-                            }
-                        }
-                    }
+                    .onDisappear { vm.visualiserFullScreen = false }
             } else if vm.visualiserMode == .metalSum {
                 MetalEnvelopeVisualiserView(vm: vm)
-                    .onAppear {
-                        DispatchQueue.main.async {
-                            if let window = NSApplication.shared.windows.first {
-                                window.toggleFullScreen(nil)
-                            }
-                        }
-                    }
+                    .onDisappear { vm.visualiserFullScreen = false }
             }
         }
         .handlesExternalEvents(matching: ["fullscreen"])
-        
+
         WindowGroup("Playlist", id: "playlist") {
             FileListView(model: vm)
                 .onDisappear {
@@ -91,4 +73,3 @@ struct EchoPlayerApp: App {
         .menuBarExtraStyle(.window)
     }
 }
-

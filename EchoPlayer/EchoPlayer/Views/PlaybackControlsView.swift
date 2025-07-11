@@ -5,30 +5,25 @@
 //  Created by Wojciech Kosikowski on 11/07/2025.
 //
 
-
 import SwiftUI
-
 
 struct PlaybackControlsView: View {
     @Bindable var vm: PlayerViewModel
-    
+
     var body: some View {
-        VStack() {
+        VStack {
             HStack {
                 Button(action: { vm.playPrev() }) {
                     Image(systemName: "backward.fill")
                         .font(.largeTitle)
-                        
                 }
                 Button(action: { vm.togglePlay() }) {
                     Image(systemName: "pause.circle.fill")
                         .font(.system(size: 48))
-                        
                 }
                 Button(action: { vm.playNext() }) {
                     Image(systemName: "forward.fill")
                         .font(.largeTitle)
-                        
                 }
             }
             .padding()
@@ -43,16 +38,15 @@ struct PlaybackControlsView: View {
                     if !editing { vm.seek(to: vm.playbackProgress) }
                 })
                 .frame(minWidth: 120)
-                
+
                 Text(formatTime(vm.duration))
                     .font(.system(.caption, design: .monospaced))
-                    
             }
             .padding(.horizontal)
             .disabled(vm.duration <= 0)
         }
     }
-    
+
     private func formatTime(_ time: Double) -> String {
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60

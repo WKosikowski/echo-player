@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-//HStack(spacing: 20) {
+// HStack(spacing: 20) {
 //    Button(action: showPlaylist) {
 //        Image(systemName: "music.note.list")
 //    }
@@ -27,19 +27,16 @@ import SwiftUI
 //    Button(action: toggleVisualizer) {
 //        Image(systemName: "waveform")
 //    }
-//}
-//.font(.system(size: 18))
-//.buttonStyle(.plain)
+// }
+// .font(.system(size: 18))
+// .buttonStyle(.plain)
 
-//•    music.note.list is clear for “open/show playlist.”
-//•    square.split.2x1 evokes an undocked or split‐out pane.
-//•    repeat.1 vs. repeat match single‐track vs. full‐album looping.
-//•    waveform (or if you want a badge, waveform.circle) suggests audio visualization.
-//                                    
+// •    music.note.list is clear for “open/show playlist.”
+// •    square.split.2x1 evokes an undocked or split‐out pane.
+// •    repeat.1 vs. repeat match single‐track vs. full‐album looping.
+// •    waveform (or if you want a badge, waveform.circle) suggests audio visualization.
 //
-
-
-
+//
 
 struct PlayerView: View {
     @Bindable var vm: PlayerViewModel
@@ -56,7 +53,7 @@ struct PlayerView: View {
                             .font(.largeTitle)
                     }
                     Button(action: { vm.togglePlay() }) {
-                        Image(systemName: ((vm.isPlaying) ? "pause.circle.fill" : "play.circle.fill"))
+                        Image(systemName: (vm.isPlaying) ? "pause.circle.fill" : "play.circle.fill")
                             .font(.system(size: 64))
                     }
                     Button(action: { vm.playNext() }) {
@@ -68,7 +65,7 @@ struct PlayerView: View {
                     .offset(x: 250)
             }
             .padding()
-            
+
             HStack {
                 Text(formatTime(vm.playbackTime))
                     .font(.system(.caption, design: .monospaced))
@@ -84,24 +81,24 @@ struct PlayerView: View {
             }
             .padding(.horizontal)
             .disabled(vm.duration <= 0)
-            HStack{
+            HStack {
                 Spacer()
-                    HStack(spacing: 8) {
-                        ForEach(0 ..< 12, id: \.self) { idx in
-                            VStack {
-                                VerticalGradientSlider(value: Binding(get: {
-                                    vm.gains[idx] / 24
-                                }, set: { vm.updateGain(band: idx, value: $0)
-                                }), gradient: Gradient(colors: [.green, .yellow, .red]))
-                                Text(label(for: idx))
-                                    .font(.caption)
-                            }
-                            .padding(.vertical)
+                HStack(spacing: 8) {
+                    ForEach(0 ..< 12, id: \.self) { idx in
+                        VStack {
+                            VerticalGradientSlider(value: Binding(get: {
+                                vm.gains[idx] / 24
+                            }, set: { vm.updateGain(band: idx, value: $0)
+                            }), gradient: Gradient(colors: [.green, .yellow, .red]))
+                            Text(label(for: idx))
+                                .font(.caption)
                         }
+                        .padding(.vertical)
+                    }
                 }
                 Spacer()
             }
-        
+
             Text("Gain ±24 dB per band")
                 .font(.footnote)
                 .foregroundColor(.secondary)
@@ -124,23 +121,24 @@ struct PlayerView: View {
                     MetalEnvelopeVisualiserView(vm: vm)
                         .padding(.horizontal)
                 }
-                HStack{
-                    Spacer()
+                HStack {
                     VStack {
-                        Toggle(isOn: $vm.visualiserFullScreen) {
-                            Text("full screen")
-                        }
-                        .offset(x: -25, y: 5)
-                        .onChange(of: vm.visualiserFullScreen) { oldValue, newValue in
-                            if !newValue {
-                                dismissWindow(id: "visualiser fullscreen")
-                            } else {
-                                openWindow(id: "visualiser fullscreen")
-                                makeVisualiserFullscreen()
+                        Image(systemName: ((vm.visualiserFullScreen) ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"))
+                            .frame(width: 32, height: 32)
+                            .foregroundColor(.white)
+                            .onTapGesture {
+                                vm.visualiserFullScreen.toggle()
+                                if vm.visualiserFullScreen {
+                                    openWindow(id: "visualiser fullscreen")
+                                    makeVisualiserFullscreen()
+                                } else {
+                                    dismissWindow(id: "visualiser fullscreen")
+                                }
                             }
-                        }
+                            .offset(x: 20)
                         Spacer()
                     }
+                    Spacer()
                 }
             }
             HStack {
@@ -181,7 +179,7 @@ struct PlayerView: View {
     private func label(for i: Int) -> String {
         ["32", "64", "128", "250", "500", "1k", "2k", "4k", "8k", "12k", "14k", "16k"][i]
     }
-    
+
     private func makeVisualiserFullscreen() {
         // Find the NSWindow for the specific WindowGroup
         for window in NSApplication.shared.windows {

@@ -7,10 +7,6 @@
 
 import Foundation
 
-
 struct Playlist {
     var name: String
-    
-    
-    
 }
