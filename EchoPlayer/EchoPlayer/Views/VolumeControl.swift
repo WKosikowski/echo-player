@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct VolumeControl: View {
-    @State private var volume: Double = 0.5   // 0…1
-
+    @Binding var volume: Float // 0…1
+    @State var lastVolume: Float
     var body: some View {
         HStack {
             // choose the right icon based on volume level
@@ -24,7 +24,7 @@ struct VolumeControl: View {
         }
     }
 
-    private func iconName(for v: Double) -> String {
+    private func iconName(for v: Float) -> String {
         switch v {
         case 0:
             return "speaker.slash.fill"
@@ -38,7 +38,14 @@ struct VolumeControl: View {
     }
 
     private func toggleMute() {
-        volume = (volume == 0) ? 0.5 : 0
+        withAnimation(.easeInOut(duration: 0.3)) {
+            if volume > 0 {
+                lastVolume = volume
+                volume = 0
+            } else {
+                volume = lastVolume
+            }
+        }
     }
 }
 

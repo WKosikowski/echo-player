@@ -63,26 +63,14 @@ struct PlayerView: View {
                             .font(.largeTitle)
                     }
                 }
-                
-                Slider(value: $vm.volume, in: 0 ... 1)
-                    .accentColor(.blue)
-                    .padding()
-                    .frame(width: 200, height: 50)
+//                HStack{
+                VolumeControl(volume: $vm.volume, lastVolume: vm.volume)
+//                    Slider(value: $vm.volume, in: 0 ... 1)
+//                        .accentColor(.blue)
+//                        .padding()
+//                        .frame(width: 200, height: 50)
+//                }
                     .offset(x: 250)
-                
-                Button(action: vm.openFile) {
-                    Label("Open", systemImage: "folder")
-                }
-                .offset(x: -200)
-                
-                Button(action: {
-                    if !vm.joinWindows {
-                        openWindow(id: "playlist")
-                    }
-                }) {
-                    Label("Open Saved List", systemImage: "document")
-                }
-                .offset(x: -320)
             }
             .padding()
             
@@ -154,25 +142,18 @@ struct PlayerView: View {
                 Text("Enable Decibel Scale")
             }
             .toggleStyle(.checkbox) // macOS only; for iOS use a custom style
-            .padding()
+            .padding(.top)
 
             Toggle(isOn: $vm.joinWindows) {
-                Text("Join Windows")
+                Text("Show Playlist")
             }
             .toggleStyle(.checkbox) // macOS only; for iOS use a custom style
-            .padding()
+            .padding(.bottom)
             .onChange(of: vm.joinWindows) { _, newValue in
                 if newValue {
                     dismissWindow(id: "playlist")
                 }
             }
-//            .onSubmit {
-//                if vm.joinWindows {
-//                    openWindow(id: "playlist")
-//                } else {
-//                    dismissWindow(id: "playlist")
-//                }
-//            }
 
             Spacer()
         }
