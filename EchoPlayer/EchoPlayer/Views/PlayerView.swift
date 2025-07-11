@@ -127,9 +127,8 @@ struct PlayerView: View {
                 SineVisualiserView(vm: vm)
                     .padding(.horizontal)
             } else if vm.visualiserMode == .metalSum {
-//                MetalSumVisualiserView()
-//                    .frame(height: 150)
-//                    .padding(.horizontal)
+                MetalEnvelopeVisualiserView(vm: vm)
+                    .padding(.horizontal)
             }
             HStack {
                 Button("Spectrum") { vm.visualiserMode = .spectrum; print(vm.visualiserMode) }
