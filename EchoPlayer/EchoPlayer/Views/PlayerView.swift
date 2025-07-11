@@ -48,6 +48,7 @@ struct PlayerView: View {
 
     var body: some View {
         VStack {
+            DisplayView(text: $vm.assetFileName)
             ZStack {
                 HStack {
                     Button(action: { vm.playPrev() }) {

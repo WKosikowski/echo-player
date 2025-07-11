@@ -10,9 +10,18 @@
 import SwiftUI
 
 struct DisplayView: View {
-    @Bindable var model: PlayerViewModel
-    
+    @Binding var text: String
     var body: some View {
-        
+        ZStack {
+            Rectangle()
+                .frame(height: 75)
+                .foregroundStyle(.black)
+            Text(text)
+                .foregroundColor(.white)
+                .font(.title)
+                .background(.black)
+        }
+        .padding(.bottom, 5)
     }
 }
+

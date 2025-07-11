@@ -26,8 +26,8 @@ struct VisualiserView: View {
                     let barCount = spectrum.count
                     guard barCount > 0 else { return }
                     let barWidth = (size.width - barSpacing * CGFloat(barCount - 1)) / CGFloat(barCount)
-                    let normalLine = CGRect(x: 0, y: size.height * 0.5, width: size.width, height: 1)
-                    context.fill(Path(normalLine), with: .color(.white))
+//                    let normalLine = CGRect(x: 0, y: size.height * 0.5, width: size.width, height: 1)
+//                    context.fill(Path(normalLine), with: .color(.white))
 
                     for i in 0 ..< barCount {
                         let value = spectrum[i]
