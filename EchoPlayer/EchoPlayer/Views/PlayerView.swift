@@ -7,16 +7,50 @@
 
 import SwiftUI
 
+//HStack(spacing: 20) {
+//    Button(action: showPlaylist) {
+//        Image(systemName: "music.note.list")
+//    }
+//
+//    Button(action: detachPlaylist) {
+//        Image(systemName: "square.split.2x1")
+//    }
+//
+//    Button(action: toggleLoopSingle) {
+//        Image(systemName: "repeat.1")
+//    }
+//
+//    Button(action: toggleLoopAll) {
+//        Image(systemName: "repeat")
+//    }
+//
+//    Button(action: toggleVisualizer) {
+//        Image(systemName: "waveform")
+//    }
+//}
+//.font(.system(size: 18))
+//.buttonStyle(.plain)
+
+//•    music.note.list is clear for “open/show playlist.”
+//•    square.split.2x1 evokes an undocked or split‐out pane.
+//•    repeat.1 vs. repeat match single‐track vs. full‐album looping.
+//•    waveform (or if you want a badge, waveform.circle) suggests audio visualization.
+//                                    
+//
+
+
+
+
 struct PlayerView: View {
     @Bindable var vm: PlayerViewModel
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
-    
+
     var body: some View {
         VStack {
             ZStack {
                 HStack {
-                    Button(action: { vm.playLast() }) {
+                    Button(action: { vm.playPrev() }) {
                         Image(systemName: "backward.fill")
                             .font(.largeTitle)
                     }
@@ -29,18 +63,18 @@ struct PlayerView: View {
                             .font(.largeTitle)
                     }
                 }
-
+                
                 Slider(value: $vm.volume, in: 0 ... 1)
                     .accentColor(.blue)
                     .padding()
                     .frame(width: 200, height: 50)
                     .offset(x: 250)
-
+                
                 Button(action: vm.openFile) {
                     Label("Open", systemImage: "folder")
                 }
                 .offset(x: -200)
-
+                
                 Button(action: {
                     if !vm.joinWindows {
                         openWindow(id: "playlist")
@@ -51,7 +85,7 @@ struct PlayerView: View {
                 .offset(x: -320)
             }
             .padding()
-
+            
             HStack {
                 Text(formatTime(vm.playbackTime))
                     .font(.system(.caption, design: .monospaced))
@@ -67,24 +101,24 @@ struct PlayerView: View {
             }
             .padding(.horizontal)
             .disabled(vm.duration <= 0)
-
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    Spacer()
-                    ForEach(0 ..< 12, id: \.self) { idx in
-                        VStack {
-                            VerticalGradientSlider(value: Binding(get: {
-                                vm.gains[idx] / 24
-                            }, set: { vm.updateGain(band: idx, value: $0)
-                            }), gradient: Gradient(colors: [.green, .yellow, .red]))
-                            Text(label(for: idx))
-                                .font(.caption)
+            HStack{
+                Spacer()
+                    HStack(spacing: 8) {
+                        ForEach(0 ..< 12, id: \.self) { idx in
+                            VStack {
+                                VerticalGradientSlider(value: Binding(get: {
+                                    vm.gains[idx] / 24
+                                }, set: { vm.updateGain(band: idx, value: $0)
+                                }), gradient: Gradient(colors: [.green, .yellow, .red]))
+                                Text(label(for: idx))
+                                    .font(.caption)
+                            }
+                            .padding(.vertical)
                         }
-                        .padding(.vertical)
-                    }
                 }
-                .padding(.horizontal)
+                Spacer()
             }
+        
             Text("Gain ±24 dB per band")
                 .font(.footnote)
                 .foregroundColor(.secondary)
@@ -121,13 +155,13 @@ struct PlayerView: View {
             }
             .toggleStyle(.checkbox) // macOS only; for iOS use a custom style
             .padding()
-            
+
             Toggle(isOn: $vm.joinWindows) {
                 Text("Join Windows")
             }
             .toggleStyle(.checkbox) // macOS only; for iOS use a custom style
             .padding()
-            .onChange(of: vm.joinWindows) { oldValue, newValue in
+            .onChange(of: vm.joinWindows) { _, newValue in
                 if newValue {
                     dismissWindow(id: "playlist")
                 }
@@ -138,7 +172,6 @@ struct PlayerView: View {
 //                } else {
 //                    dismissWindow(id: "playlist")
 //                }
-                
 //            }
 
             Spacer()

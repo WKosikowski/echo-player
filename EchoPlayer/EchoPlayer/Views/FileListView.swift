@@ -9,21 +9,17 @@ import Combine
 import SwiftUI
 
 struct FileListView: View {
-//    @Bindable var model: FileListModel
     @Bindable var model: PlayerViewModel
 
     var body: some View {
         VStack(alignment: .leading) {
             List {
                 ForEach(model.files) { entry in
-                    Text(entry.displayName)
+                    Text(entry.name)
                         .font(.system(.body, design: .monospaced))
                         .padding(.vertical, 2)
                         .onTapGesture(count: 2) {
-                            print(entry.fullPath)
-//                            playerVM.playFile(url: URL(fileURLWithPath: entry.fullPath))
-                            model.playFile(url: URL(fileURLWithPath: entry.fullPath))
-                            model.currentlyPlaying = entry
+                            model.play(id: entry.id)
                         }
                 }
                 .onMove { indices, newOffset in
@@ -34,32 +30,30 @@ struct FileListView: View {
             .background(Color(NSColor.controlBackgroundColor))
             .frame(minHeight: 300)
             .onDrop(of: ["public.file-url"], isTargeted: nil) { providers in
-                for provider in providers {
-                    provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, _ in
-                        if let data = item as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
-                            DispatchQueue.main.async {
-                                model.add(urls: [url])
-                            }
-                        } else if let url = item as? URL {
-                            DispatchQueue.main.async {
-                                model.add(urls: [url])
-                            }
-                        }
-                    }
+                Task { 
+                    await model.acceptDrop(from: providers)
                 }
                 return true
             }
 
             HStack {
-                Button("Clear List") { model.clear() }
                 Spacer()
-                Button("Load JSON") {
-                    Task { await model.loadJSONFromPanel() }
+                Button {
+                    model.clear()
+                } label: {
+                    Image(systemName: "clear")
                 }
-                Spacer()
-                Button("Save as JSON") {
+                Button {
+                    Task { await model.loadPlaylist() }
+                } label: {
+                    Image(systemName: "tray.and.arrow.down")
+                }
+                Button {
                     Task { await model.saveToJSON() }
+                } label: {
+                    Image(systemName: "tray.and.arrow.up")
                 }
+                Spacer()
             }
             .padding(.top, 8)
         }

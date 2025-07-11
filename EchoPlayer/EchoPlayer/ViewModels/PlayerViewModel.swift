@@ -10,7 +10,13 @@ import AVFoundation
 import SwiftUI
 import UniformTypeIdentifiers
 
-@MainActor
+enum Config {
+    static let playlistTypes: [UTType] = [UTType("eplist")!]
+    static let allowedContentTypes: [UTType] = [.mp3, .wav, .mpeg4Audio, .aiff]
+    static let supportedExtensions: Set<String> = ["mp3", "wav", "eplist", "eps", "epl", "json"]
+}
+
+
 @Observable
 final class PlayerViewModel {
     enum VisualiserMode {
@@ -47,11 +53,8 @@ final class PlayerViewModel {
         }
         return "[♪ \(Int(max(1, playbackProgress * 100)))%] " + assetFileName
     }
-    
-    private let decoder: JSONDecoder = .init()
-    private let store: UserDefaults = .standard
-    private let encoder: JSONEncoder = .init()
-    
+
+    //move to playlist
     var files: [ListedFile] = []
 
     // Playback progress properties
@@ -76,12 +79,16 @@ final class PlayerViewModel {
     private var fftReal = [Float](repeating: 0, count: 512)
     private var fftImag = [Float](repeating: 0, count: 512)
 
+    private let decoder: JSONDecoder = .init()
+    private let store: UserDefaults = .standard
+    private let encoder: JSONEncoder = .init()
+
     init() {
         configureEQ()
         setupEngine()
         window = vDSP.window(ofType: Float.self, usingSequence: .hanningDenormalized, count: fftSize, isHalfWindow: false)
         setupTimer()
-        
+
         do {
             if let list = store.value(forKey: "lastPlaybackList") as? Data {
                 files = try decoder.decode([ListedFile].self, from: list)
@@ -92,105 +99,79 @@ final class PlayerViewModel {
     }
 
     deinit {
-//        timer?.invalidate()
+        // TODO: check this
+        // timer?.invalidate()
     }
 
-    private func setupTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.updatePlaybackTime()
+    // add to playlist
+    @MainActor
+    func acceptDrop(from providers: [NSItemProvider]) async {
+        let urls: [URL] = await withTaskGroup(of: URL?.self) { group in
+            for provider in providers {
+                group.addTask {
+                    let item = try? await provider.loadItem(forTypeIdentifier: "public.file-url", options: nil)
+                    if let data = item as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
+                        return url
+                    } else if let url = item as? URL {
+                        return url
+                    } else {
+                        return nil
+                    }
+                }
             }
+            var results: [URL] = []
+            for await maybeURL in group {
+                if let url = maybeURL {
+                    results.append(url)
+                }
+            }
+            return results
         }
+        self.add(urls: urls)
     }
 
-    private func updatePlaybackTime() {
-        guard let nodeTime = player.lastRenderTime,
-              let playerTime = player.playerTime(forNodeTime: nodeTime),
-              let file = audioFile
-        else {
-            playbackTime = 0
-            playbackProgress = 0
-            return
-        }
-        let seekOffsetSeconds = Double(seekFrameOffset) / playerTime.sampleRate
-        let currentTime = (Double(playerTime.sampleTime) / playerTime.sampleRate) + seekOffsetSeconds
-        playbackTime = currentTime
-        duration = Double(file.length) / file.fileFormat.sampleRate
-        if duration > 0 {
-            playbackProgress = min(max(currentTime / duration, 0), 1)
-            if playbackProgress >= 1 {
-                playNext()
-            }
-        } else {
-            playbackProgress = 0
-        }
-        
-        
-    }
-    
+    // move to playlist
     func nextFile(after file: ListedFile, in files: [ListedFile]) -> ListedFile? {
         guard let currentIndex = files.firstIndex(where: { $0.id == file.id }) else { return nil }
         let nextIndex = (currentIndex + 1) % files.count
         return files[nextIndex]
     }
-    
+
+    // move to playlist
     func previousFile(before file: ListedFile, in files: [ListedFile]) -> ListedFile? {
         guard !files.isEmpty else { return nil }
         guard let currentIndex = files.firstIndex(where: { $0.id == file.id }) else { return nil }
         let previousIndex = (currentIndex - 1 + files.count) % files.count
         return files[previousIndex]
     }
-    
-    func playLast() {
-        if let currentlyPlaying = currentlyPlaying {
-            if files.count > 0 {
-                let nextFile = previousFile(before: currentlyPlaying, in: files)!
-                let nextURL = URL(string:  nextFile.fullPath )!
-                
-                do {
-                    audioFile = try AVAudioFile(forReading: nextURL)
-                    seekFrameOffset = 0
-                    
-                    assetFileName = nextURL.lastPathComponent
-                    let avAsset = AVURLAsset(url: nextURL)
-                    
-                    player.stop()
-                    if let file = audioFile {
-                        player.scheduleFile(file, at: nil)
-                        duration = Double(file.length) / file.fileFormat.sampleRate
-                        playbackProgress = 0
-                        playbackTime = 0
-                        play()
-                        self.currentlyPlaying = nextFile
-                    }
-                } catch { print("Error loading file: \(error)") }
-            }
+
+    func play(id: String) {
+        if let asset = files.first(where: { $0.id == id }) {
+            let assetUrlString = asset.fullPath
+            let url = URL(string: assetUrlString)!
+            playAsset(at: url)
+            self.currentlyPlaying = asset
         }
     }
     
+    func playPrev() {
+        if let currentlyPlaying = currentlyPlaying {
+            if files.count > 0 {
+                let nextFile = previousFile(before: currentlyPlaying, in: files)!
+                let prevUrl = URL(string: nextFile.fullPath)!
+                playAsset(at: prevUrl)
+                self.currentlyPlaying = nextFile
+            }
+        }
+    }
+
     func playNext() {
         if let currentlyPlaying = currentlyPlaying {
             if files.count > 0 {
                 let nextFile = nextFile(after: currentlyPlaying, in: files)!
-                let nextURL = URL(string:  nextFile.fullPath )!
-                
-                do {
-                    audioFile = try AVAudioFile(forReading: nextURL)
-                    seekFrameOffset = 0
-                    
-                    assetFileName = nextURL.lastPathComponent
-                    let avAsset = AVURLAsset(url: nextURL)
-                    
-                    player.stop()
-                    if let file = audioFile {
-                        player.scheduleFile(file, at: nil)
-                        duration = Double(file.length) / file.fileFormat.sampleRate
-                        playbackProgress = 0
-                        playbackTime = 0
-                        play()
-                        self.currentlyPlaying = nextFile
-                    }
-                } catch { print("Error loading file: \(error)") }
+                let nextURL = URL(string: nextFile.fullPath)!
+                playAsset(at: nextURL)
+                self.currentlyPlaying = nextFile
             }
         }
     }
@@ -224,62 +205,186 @@ final class PlayerViewModel {
         play()
     }
 
-    // Tap post‑EQ for visualiser
-    private func installTap() {
-        let mixer = engine.mainMixerNode
-        mixer.removeTap(onBus: 0)
-        mixer.installTap(onBus: 0,
-                         bufferSize: AVAudioFrameCount(1024),
-                         format: mixer.outputFormat(forBus: 0))
-        { [weak self] buffer, _ in
-            self?.process(buffer: buffer)
-        }
-    }
-
-    private func configureEQ() {
-        let freqs: [Float] = [32, 64, 128, 256, 512, 1000, 2000, 4000, 8000, 12000, 14000, 16000]
-        for (i, band) in eq.bands.enumerated() {
-            band.filterType = .parametric
-            band.frequency = freqs[i]
-            band.bandwidth = 1.0 // octaves
-            band.gain = 0
-            band.bypass = false
-        }
-        eq.globalGain = -12
-    }
-
     func openFile() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.mp3, .wav, .mpeg4Audio, .aiff]
         panel.allowsMultipleSelection = false
         if panel.runModal() == .OK, let url = panel.url {
-            do {
-                audioFile = try AVAudioFile(forReading: url)
-                seekFrameOffset = 0
-                print(url)
-                assetFileName = url.lastPathComponent
-                let avAsset = AVURLAsset(url: url)
-
-                player.stop()
-                if let file = audioFile {
-                    player.scheduleFile(file, at: nil)
-                    duration = Double(file.length) / file.fileFormat.sampleRate
-                    playbackProgress = 0
-                    playbackTime = 0
-                    play()
-                }
-            } catch { print("Error loading file: \(error)") }
+            playAsset(at: url)
         }
     }
 
-    func playFile(url: URL) {
+    // hooked to controlls
+    func updateGain(band: Int, value: Float) {
+        gains[band] = value * 24
+        eq.bands[band].gain = value * 24
+    }
+
+    func togglePlay() {
+        print(isPlaying)
+        guard !isPlaying else { pause(); return }
+        if !engine.isRunning { try? engine.start() }
+        if !player.isPlaying { player.play() }
+        isPlaying = true
+    }
+
+    func play() {
+        if !engine.isRunning { try? engine.start() }
+        if !player.isPlaying { player.play() }
+        isPlaying = true
+    }
+
+    func pause() {
+        player.pause()
+        isPlaying = false
+    }
+
+    func savePlaylistState() {
+        do {
+            let data = try encoder.encode(files)
+            store.set(data, forKey: "lastPlaybackList")
+        } catch {
+            print(error)
+        }
+    }
+
+    func clear() {
+        files = []
+        savePlaylistState()
+    }
+
+    // Save as JSON to chosen file
+    @MainActor
+    func saveToJSON() async {
+        let savePanel = NSSavePanel()
+        savePanel.allowedContentTypes = Config.playlistTypes
+        savePanel.nameFieldStringValue = "Echo-Playlist-Name.eplist"
+        if savePanel.runModal() == .OK, let url = savePanel.url {
+            do {
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .prettyPrinted
+                let data = try encoder.encode(files)
+                try data.write(to: url)
+            } catch {
+                print(error)
+            }
+        }
+    }
+
+    func loadJSON(url: URL) {
+        clear()
+        do {
+            let data = try Data(contentsOf: url)
+            let decoder = JSONDecoder()
+            let loadedFiles = try decoder.decode([ListedFile].self, from: data)
+            // Avoid duplicates
+            let existingPaths = Set(files.map { $0.fullPath })
+            let deduped = loadedFiles.filter { !existingPaths.contains($0.fullPath) }
+            files.append(contentsOf: deduped)
+        } catch {
+            print("Error loading JSON: \(error)")
+        }
+    }
+
+    // Load files from a JSON file
+    @MainActor
+    func loadPlaylist() async {
+        let openPanel = NSOpenPanel()
+        openPanel.allowedContentTypes = Config.playlistTypes
+        openPanel.allowsMultipleSelection = false
+        openPanel.canChooseDirectories = false
+        openPanel.canChooseFiles = true
+
+        if openPanel.runModal() == .OK, let url = openPanel.url {
+            do {
+                let data = try Data(contentsOf: url)
+                let decoder = JSONDecoder()
+                let loadedFiles = try decoder.decode([ListedFile].self, from: data)
+                // Avoid duplicates
+                let existingPaths = Set(files.map { $0.fullPath })
+                let deduped = loadedFiles.filter { !existingPaths.contains($0.fullPath) }
+                files.append(contentsOf: deduped)
+            } catch {
+                print("Error loading JSON: \(error)")
+            }
+        }
+        savePlaylistState()
+    }
+}
+
+private func filesRecursively(in directory: URL) -> [ListedFile] {
+    let fm = FileManager.default
+    let enumerator = fm.enumerator(at: directory, includingPropertiesForKeys: nil)
+    var files: [ListedFile] = []
+    while let element = enumerator?.nextObject() as? URL {
+        if !element.hasDirectoryPath, element.isSupported() {
+            files.append(ListedFile(url: element))
+        }
+    }
+    return files
+}
+
+extension PlayerViewModel {
+    private func updatePlaybackTime() {
+        guard let nodeTime = player.lastRenderTime,
+              let playerTime = player.playerTime(forNodeTime: nodeTime),
+              let file = audioFile
+        else {
+            playbackTime = 0
+            playbackProgress = 0
+            return
+        }
+
+        let seekOffsetSeconds = Double(seekFrameOffset) / playerTime.sampleRate
+        let currentTime = (Double(playerTime.sampleTime) / playerTime.sampleRate) + seekOffsetSeconds
+        playbackTime = currentTime
+        duration = Double(file.length) / file.fileFormat.sampleRate
+        if duration > 0 {
+            playbackProgress = min(max(currentTime / duration, 0), 1)
+            if playbackProgress >= 1 {
+                playNext()
+            }
+        } else {
+            playbackProgress = 0
+        }
+    }
+
+    // mopve tp playlist
+    // Adds supported files from dropped URLs (recursively for folders)
+    private func add(urls: [URL]) {
+        var added: [ListedFile] = []
+        for url in urls {
+            if url.hasDirectoryPath {
+                let fileURLs = filesRecursively(in: url)
+                added.append(contentsOf: fileURLs)
+            } else if url.isSupported() {
+                if url.pathExtension == "eplist" {
+                    loadJSON(url: url)
+                } else {
+                    added.append(ListedFile(url: url))
+                }
+            }
+        }
+        // Avoid duplicates
+        let existingPaths = Set(files.map { $0.fullPath })
+        let deduped = added.filter { !existingPaths.contains($0.fullPath) }
+        files.append(contentsOf: deduped)
+        savePlaylistState()
+    }
+
+    private func setupTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.updatePlaybackTime()
+            }
+        }
+    }
+
+    private func playAsset(at url: URL) {
         do {
             audioFile = try AVAudioFile(forReading: url)
             seekFrameOffset = 0
-
             assetFileName = url.lastPathComponent
-            let avAsset = AVURLAsset(url: url)
-
             player.stop()
             if let file = audioFile {
                 player.scheduleFile(file, at: nil)
@@ -291,6 +396,7 @@ final class PlayerViewModel {
         } catch { print("Error loading file: \(error)") }
     }
 
+    // TODO: Move to Metal
     private func process(buffer: AVAudioPCMBuffer) {
         guard let src = buffer.floatChannelData?.pointee,
               buffer.frameLength >= fftSize else { return }
@@ -354,140 +460,28 @@ final class PlayerViewModel {
         }
     }
 
-    func updateGain(band: Int, value: Float) {
-        gains[band] = value * 24
-        eq.bands[band].gain = value * 24
+    // Tap post‑EQ for visualiser
+    private func installTap() {
+        let mixer = engine.mainMixerNode
+        mixer.removeTap(onBus: 0)
+        mixer.installTap(onBus: 0,
+                         bufferSize: AVAudioFrameCount(1024),
+                         format: mixer.outputFormat(forBus: 0))
+        { [weak self] buffer, _ in
+            self?.process(buffer: buffer)
+        }
     }
 
-    func togglePlay() {
-        print(isPlaying)
-        guard !isPlaying else { pause(); return }
-        if !engine.isRunning { try? engine.start() }
-        if !player.isPlaying { player.play() }
-        isPlaying = true
-    }
-
-    func play() {
-        if !engine.isRunning { try? engine.start() }
-        if !player.isPlaying { player.play() }
-        isPlaying = true
-    }
-
-    func pause() {
-        player.pause()
-        isPlaying = false
-    }
-    
-    
-    func saveToStore() {
-        do {
-            let data = try encoder.encode(files)
-            store.set(data, forKey: "lastPlaybackList")
-        } catch {
-            print(error)
+    private func configureEQ() {
+        let freqs: [Float] = [32, 64, 128, 256, 512, 1000, 2000, 4000, 8000, 12000, 14000, 16000]
+        for (i, band) in eq.bands.enumerated() {
+            band.filterType = .parametric
+            band.frequency = freqs[i]
+            band.bandwidth = 1.0 // octaves
+            band.gain = 0
+            band.bypass = false
         }
-    }
-    
-    // Adds supported files from dropped URLs (recursively for folders)
-    func add(urls: [URL]) {
-        var added: [ListedFile] = []
-        for url in urls {
-            if url.hasDirectoryPath {
-                let fileURLs = filesRecursively(in: url)
-                added.append(contentsOf: fileURLs)
-            } else if isSupported(url) {
-                if url.pathExtension == "eplist" {
-                    loadJSON(url: url)
-                } else {
-                    added.append(ListedFile(url: url))
-                }
-            }
-        }
-        // Avoid duplicates
-        let existingPaths = Set(files.map { $0.fullPath })
-        let deduped = added.filter { !existingPaths.contains($0.fullPath) }
-        files.append(contentsOf: deduped)
-        saveToStore()
-    }
-    
-    func clear() {
-        files = []
-        saveToStore()
-    }
-    
-    // Save as JSON to chosen file
-    @MainActor
-    func saveToJSON() async {
-        let savePanel = NSSavePanel()
-        savePanel.allowedFileTypes = ["eplist", "epl", "eps", "json"]
-        savePanel.nameFieldStringValue = "file-list.eplist"
-        if savePanel.runModal() == .OK, let url = savePanel.url {
-            do {
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = .prettyPrinted
-                let data = try encoder.encode(files)
-                try data.write(to: url)
-            } catch {
-                print(error)
-            }
-        }
-    }
-    
-    func loadJSON(url: URL) {
-        clear()
-        do {
-            let data = try Data(contentsOf: url)
-            let decoder = JSONDecoder()
-            let loadedFiles = try decoder.decode([ListedFile].self, from: data)
-            // Avoid duplicates
-            let existingPaths = Set(files.map { $0.fullPath })
-            let deduped = loadedFiles.filter { !existingPaths.contains($0.fullPath) }
-            files.append(contentsOf: deduped)
-        } catch {
-            print("Error loading JSON: \(error)")
-        }
-    }
-    
-    // Load files from a JSON file
-    @MainActor
-    func loadJSONFromPanel() async {
-        let openPanel = NSOpenPanel()
-        openPanel.allowedFileTypes = ["eplist", "eps", "epl", "json"]
-        openPanel.allowsMultipleSelection = false
-        openPanel.canChooseDirectories = false
-        openPanel.canChooseFiles = true
-        
-        if openPanel.runModal() == .OK, let url = openPanel.url {
-            do {
-                let data = try Data(contentsOf: url)
-                let decoder = JSONDecoder()
-                let loadedFiles = try decoder.decode([ListedFile].self, from: data)
-                // Avoid duplicates
-                let existingPaths = Set(files.map { $0.fullPath })
-                let deduped = loadedFiles.filter { !existingPaths.contains($0.fullPath) }
-                files.append(contentsOf: deduped)
-            } catch {
-                print("Error loading JSON: \(error)")
-            }
-        }
-        saveToStore()
+        eq.globalGain = -12
     }
 }
 
-private func filesRecursively(in directory: URL) -> [ListedFile] {
-    let fm = FileManager.default
-    let enumerator = fm.enumerator(at: directory, includingPropertiesForKeys: nil)
-    var files: [ListedFile] = []
-    while let element = enumerator?.nextObject() as? URL {
-        if !element.hasDirectoryPath, isSupported(element) {
-            files.append(ListedFile(url: element))
-        }
-    }
-    return files
-}
-
-private let supportedExtensions: Set<String> = ["mp3", "wav", "eplist", "eps", "epl", "json"]
-
-private func isSupported(_ url: URL) -> Bool {
-    supportedExtensions.contains(url.pathExtension.lowercased())
-}

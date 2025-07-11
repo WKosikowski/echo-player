@@ -10,7 +10,6 @@ import SwiftUI
 @main
 struct EchoPlayerApp: App {
     @State var vm = PlayerViewModel()
-//    @State var fileModel = FileListModel()
     @State private var mainWindowIsOpen = true
     @State private var playlistWindowIsOpen = true
 
@@ -27,7 +26,6 @@ struct EchoPlayerApp: App {
                     .frame(minWidth: 800, minHeight: 800)
                 if vm.joinWindows {
                     FileListView(model: vm)
-                    
                         .onDisappear {
                             mainWindowIsOpen = false
                             playlistWindowIsOpen = false
@@ -36,28 +34,25 @@ struct EchoPlayerApp: App {
                 }
             }
         }
-        
-        
-            WindowGroup("Playlist", id: "playlist") {
-                //            FileListView(model: fileModel, playerVM: vm)
-                FileListView(model: vm)
-                
-                    .onDisappear {
-                        mainWindowIsOpen = false
-                        playlistWindowIsOpen = false
-                    }
-                    .onDisappear {
-                        vm.joinWindows = true
-                    }
-            }
-            
+
+        WindowGroup("Playlist", id: "playlist") {
+            FileListView(model: vm)
+                .onDisappear {
+                    mainWindowIsOpen = false
+                    playlistWindowIsOpen = false
+                }
+                .onDisappear {
+                    vm.joinWindows = true
+                }
+        }
 
         MenuBarExtra {
-//            FileListView(model: fileModel, playerVM: vm)
+            PlaybackControlsView(vm: vm)
             FileListView(model: vm)
+                .padding(.vertical)
 
         } label: {
-            MiniPlayerView(vm: vm)
+            MenuBarPlayerView(vm: vm)
                 .frame(minWidth: 80, maxWidth: 100)
                 .background(.blue)
         }
@@ -65,16 +60,3 @@ struct EchoPlayerApp: App {
     }
 }
 
-struct MiniPlayerView: View {
-    @Bindable var vm: PlayerViewModel
-
-    var body: some View {
-        ZStack(alignment: .leading) {
-            Text(vm.menuBarText)
-                .foregroundColor(.primary)
-                .padding(.horizontal, 8)
-                .lineLimit(1)
-                .truncationMode(.tail)
-        }
-    }
-}
